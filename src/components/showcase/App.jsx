@@ -43,11 +43,11 @@ function SignupModal({ open, onClose, onSignedUp }) {
         </button>
         <div className="brand-lockup brand-lockup--dark">
           <span className="brand-mark" aria-hidden="true" />
-          <span>PolicyScout</span>
+          <span>StayScout</span>
         </div>
         <p className="eyebrow">Create your account</p>
         <h2 id="login-title">Sign up to start negotiating</h2>
-        <p className="modal-copy">Create a PolicyScout workspace, then enter your vehicle to run the live demo.</p>
+        <p className="modal-copy">Create a StayScout workspace, then enter your group booking to run the live demo.</p>
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
             Full name
@@ -55,14 +55,14 @@ function SignupModal({ open, onClose, onSignedUp }) {
           </label>
           <label>
             Email
-            <input name="email" type="email" defaultValue="alex@policyscout.demo" autoComplete="email" spellCheck="false" required />
+            <input name="email" type="email" defaultValue="alex@stayscout.demo" autoComplete="email" spellCheck="false" required />
           </label>
           {error && <p className="disclosure" role="alert" style={{ color: "var(--coral)" }}>{error}</p>}
           <button className="primary-button primary-button--wide" type="submit" disabled={busy}>
             {busy ? (<><SpinnerGap className="spin" size={18} weight="bold" /> Creating…</>) : "Create account & open workspace"}
           </button>
         </form>
-        <p className="disclosure">A lightweight demo account is created for this browser session. Providers and calls are simulated.</p>
+        <p className="disclosure">A lightweight demo account is created for this browser session. Hotels and calls are simulated.</p>
       </section>
     </div>
   );

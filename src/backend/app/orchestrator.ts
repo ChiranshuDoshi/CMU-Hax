@@ -8,9 +8,12 @@
 import { join } from "node:path";
 
 import { capabilities } from "@/config/env";
-import { MockResearchProvider, rankResearchResult } from "@/domain/research";
-import { QueritResearchProvider } from "@/integrations/querit";
-import { TavilyResearchProvider } from "@/integrations/tavily";
+import { rankResearchResult } from "@/domain/research";
+import {
+  HotelQueritResearchProvider,
+  OfflineHotelResearchProvider,
+  type HotelPriceHint,
+} from "@/integrations/querit";
 import {
   QuoteCollectionService,
   type QuoteCollectionContextLoader,
@@ -55,15 +58,53 @@ export class AppError extends Error {
 const MAX_DISCOUNT_RATE = 0.15; // negotiation can shave at most ~15% in the demo
 
 // ── Stage 1: market research → Top 5 ────────────────────────────────────────
-async function mockRanking(
+/** Destination-aware offline hotels (demo mode, or when live search finds none). */
+async function offlineHotelRanking(
   request: ReturnType<typeof buildConfirmedRequest>,
+  profile: CarProfile,
   evaluatedAt: string,
 ): Promise<ProviderRankingResult> {
-  const result = await new MockResearchProvider().research({
+  const result = await new OfflineHotelResearchProvider(profile).research({
     quoteRequest: request,
     retrievedAt: evaluatedAt,
   });
   return rankResearchResult(request, result, evaluatedAt);
+}
+
+function parsePriceHintsFromBriefs(
+  ranking: ProviderRankingResult,
+): Map<string, HotelPriceHint> {
+  const map = new Map<string, HotelPriceHint>();
+  for (const brief of ranking.selected) {
+    const nightlyRaw = brief.publicDiscounts.find((item) => item.startsWith("aggregator_nightly_cents:"));
+    const roomRaw = brief.publicDiscounts.find((item) => item.startsWith("room_type:"));
+    const nightlyCents = nightlyRaw ? Number(nightlyRaw.split(":")[1]) : null;
+    const aggregators = brief.publicDiscounts
+      .filter((item) => item.startsWith("agg:"))
+      .map((item) => {
+        const [, rest = ""] = item.split("agg:");
+        const eq = rest.lastIndexOf("=");
+        const name = eq >= 0 ? rest.slice(0, eq) : rest;
+        const cents = eq >= 0 ? Number(rest.slice(eq + 1)) : NaN;
+        return {
+          name,
+          nightlyCents: Number.isFinite(cents) ? cents : nightlyCents ?? 0,
+          url: brief.sources.find((source) => source.publisher === name)?.url ?? brief.website ?? "",
+          domain: brief.sources.find((source) => source.publisher === name)?.domain ?? "",
+        };
+      })
+      .filter((item) => item.name && item.nightlyCents > 0);
+
+    if (nightlyCents != null && Number.isFinite(nightlyCents) && nightlyCents > 0) {
+      map.set(brief.providerId, {
+        providerId: brief.providerId,
+        nightlyCents,
+        roomType: roomRaw?.slice("room_type:".length) || "Deluxe",
+        aggregators,
+      });
+    }
+  }
+  return map;
 }
 
 export async function runResearch(workflow: WorkflowState, profile: CarProfile): Promise<void> {
@@ -73,40 +114,36 @@ export async function runResearch(workflow: WorkflowState, profile: CarProfile):
 
   let ranking: ProviderRankingResult | null = null;
   let live = false;
+  let priceHints = new Map<string, HotelPriceHint>();
 
   if (caps.hasQuerit) {
     try {
-      const result = await new QueritResearchProvider({
+      const hotelProvider = new HotelQueritResearchProvider(profile, {
         apiKey: process.env.QUERIT_API_KEY,
         baseUrl: process.env.QUERIT_BASE_URL,
-      }).research({ quoteRequest: request, retrievedAt: evaluatedAt });
-      const ranked = rankResearchResult(request, result, evaluatedAt);
-      if (ranked.selected.length === 5) {
-        ranking = ranked;
-        live = true;
-      }
-    } catch {
-      /* fall through */
-    }
-  }
-
-  if (!ranking && caps.hasTavily) {
-    try {
-      const result = await new TavilyResearchProvider({ apiKey: process.env.TAVILY_API_KEY }).research({
-        quoteRequest: request,
-        retrievedAt: evaluatedAt,
       });
+      const result = await hotelProvider.research({ quoteRequest: request, retrievedAt: evaluatedAt });
       const ranked = rankResearchResult(request, result, evaluatedAt);
-      if (ranked.selected.length === 5) {
+      if (ranked.selected.length >= 1) {
         ranking = ranked;
         live = true;
+        priceHints = new Map(hotelProvider.getPriceHints().map((hint) => [hint.providerId, hint]));
+        if (priceHints.size === 0) priceHints = parsePriceHintsFromBriefs(ranked);
+      } else {
+        console.warn("[stayscout] Querit hotel search produced no eligible hotels", result.warnings);
       }
-    } catch {
-      /* fall through */
+    } catch (error) {
+      console.warn(
+        "[stayscout] Querit hotel search failed:",
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 
-  if (!ranking) ranking = await mockRanking(request, evaluatedAt);
+  if (!ranking) {
+    ranking = await offlineHotelRanking(request, profile, evaluatedAt);
+    priceHints = parsePriceHintsFromBriefs(ranking);
+  }
 
   workflow.profile = profile as unknown as Record<string, unknown>;
   workflow.confirmedRequest = request;
@@ -114,15 +151,25 @@ export async function runResearch(workflow: WorkflowState, profile: CarProfile):
   workflow.research = {
     live,
     evaluatedAt,
-    providers: ranking.selected.map((brief) => ({
-      providerId: brief.providerId,
-      providerName: brief.providerName,
-      rank: brief.topFiveRank ?? 0,
-      rating: brief.rating,
-      reviewCount: brief.reviewCount,
-      website: brief.website,
-      eligibility: brief.eligibilityStatus,
-    })),
+    providers: ranking.selected.map((brief) => {
+      const hint = priceHints.get(brief.providerId);
+      return {
+        providerId: brief.providerId,
+        providerName: brief.providerName,
+        rank: brief.topFiveRank ?? 0,
+        rating: brief.rating,
+        reviewCount: brief.reviewCount,
+        website: brief.website,
+        eligibility: brief.eligibilityStatus,
+        nightlyCents: hint?.nightlyCents ?? null,
+        roomType: hint?.roomType ?? null,
+        aggregators: (hint?.aggregators ?? []).map((agg) => ({
+          name: agg.name,
+          nightlyCents: agg.nightlyCents,
+          url: agg.url,
+        })),
+      };
+    }),
   };
   workflow.quotes = null;
   workflow.recommendedQuoteId = null;
@@ -136,19 +183,20 @@ export async function runResearch(workflow: WorkflowState, profile: CarProfile):
 function buildProviderBrief(workflow: WorkflowState): string {
   const profile = (workflow.profile ?? {}) as Record<string, unknown>;
   const request = workflow.confirmedRequest;
-  const vehicle = `${profile.year ?? ""} ${profile.make ?? ""} ${profile.model ?? ""}`
+  const stayHint = `${profile.make ?? ""} ${profile.model ?? ""}`
     .replace(/\s+/g, " ")
     .trim();
+  const rooms = profile.annualMileage ? `${profile.annualMileage} rooms` : "group room block";
   const parts = [
-    `Customer seeking auto insurance in ${request?.state ?? ""} ${request?.zipCode ?? ""}.`,
-    vehicle ? `Vehicle: ${vehicle}.` : "",
-    profile.annualMileage ? `Approximately ${profile.annualMileage} annual miles.` : "",
-    "Requested coverage: bodily injury 100/300, collision and comprehensive with a $500 deductible.",
-    `Desired effective date ${request?.desiredEffectiveDate ?? "on file"}.`,
+    `Group seeking hotel rates in ${request?.state ?? "IL"} ${request?.zipCode ?? "60601"}.`,
+    stayHint ? `Stay preference: ${stayHint}.` : "",
+    `Group size: ${rooms}.`,
+    "Stay baseline: breakfast included, pool and gym access, Wi-Fi included, 14-day flexible cancellation.",
+    `Desired check-in ${request?.desiredEffectiveDate ?? "on file"}.`,
     "Do not disclose payment details, government identifiers, or any private negotiation target.",
   ];
   const brief = parts.filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
-  return brief.slice(0, 8_000) || "Auto insurance quote request.";
+  return brief.slice(0, 8_000) || "Group hotel booking quote request.";
 }
 
 function monthlyCents(quote: NormalizedQuote): number | null {
@@ -210,9 +258,32 @@ export async function collectQuotes(workflow: WorkflowState): Promise<void> {
 
   const byProvider = new Map(normalized.map((quote) => [quote.providerId, quote]));
   const recommendedQuoteId = recommendation.recommendedQuoteId;
+  const priceHints = parsePriceHintsFromBriefs(ranking);
+  for (const provider of workflow.research?.providers ?? []) {
+    if (provider.nightlyCents != null) {
+      priceHints.set(provider.providerId, {
+        providerId: provider.providerId,
+        nightlyCents: provider.nightlyCents,
+        roomType: provider.roomType ?? "Deluxe",
+        aggregators: provider.aggregators.map((agg) => ({
+          name: agg.name,
+          nightlyCents: agg.nightlyCents,
+          url: agg.url,
+          domain: "",
+        })),
+      });
+    }
+  }
 
   const quotes: QuoteView[] = ranking.selected.map((brief) => {
     const quote = byProvider.get(brief.providerId);
+    const hint = priceHints.get(brief.providerId);
+    const liveNightly = hint?.nightlyCents ?? null;
+    const annualized =
+      liveNightly ??
+      quote?.annualizedCostCents ??
+      quote?.effectiveComparisonCostCents ??
+      null;
     return {
       quoteId: quote?.quoteId ?? `${brief.providerId}-quote`,
       providerId: brief.providerId,
@@ -220,18 +291,34 @@ export async function collectQuotes(workflow: WorkflowState): Promise<void> {
       rank: brief.topFiveRank ?? 0,
       rating: brief.rating,
       reviewCount: brief.reviewCount,
-      effectiveComparisonCostCents: quote?.effectiveComparisonCostCents ?? null,
-      annualizedCostCents: quote?.annualizedCostCents ?? null,
-      monthlyCents: quote ? monthlyCents(quote) : null,
+      effectiveComparisonCostCents: annualized,
+      annualizedCostCents: annualized,
+      monthlyCents: annualized === null ? null : Math.round(annualized / 12),
       deductibleCents: 50_000,
       coverageEquivalence: quote?.coverageEquivalence.status ?? "missing_information",
       redFlags: quote?.redFlags.map((flag) => flag.message) ?? [],
       recommended: quote?.quoteId === recommendedQuoteId,
+      roomType: hint?.roomType ?? null,
+      aggregators: (hint?.aggregators ?? []).map((agg) => ({
+        name: agg.name,
+        nightlyCents: agg.nightlyCents,
+        url: agg.url,
+      })),
     };
   });
 
+  // Prefer the lowest aggregator-backed nightly rate as the recommendation.
+  const lowest = [...quotes].sort(
+    (a, b) => (a.annualizedCostCents ?? 9e9) - (b.annualizedCostCents ?? 9e9),
+  )[0];
+  if (lowest) {
+    for (const quote of quotes) quote.recommended = quote.quoteId === lowest.quoteId;
+    workflow.recommendedQuoteId = lowest.quoteId;
+  } else {
+    workflow.recommendedQuoteId = recommendedQuoteId;
+  }
+
   workflow.quotes = quotes;
-  workflow.recommendedQuoteId = recommendedQuoteId;
   workflow.handoff = handoff;
   workflow.negotiation = null;
   workflow.stage = "quotes_ready";
@@ -261,10 +348,10 @@ function simulateConcession(
   const p2 = originalCents - Math.round(drop * 0.85);
 
   const steps: NegotiationStepView[] = [
-    { label: "Starting quote", amountCents: originalCents, time: "00:00", impactCents: null },
-    { label: "Competitive offer matched", amountCents: p1, time: "01:52", impactCents: p1 - originalCents },
-    { label: "Loyalty and telematics discount applied", amountCents: p2, time: "03:29", impactCents: p2 - p1 },
-    { label: "Final approved adjustment", amountCents: finalCents, time: "06:11", impactCents: finalCents - p2 },
+    { label: "Opening group rate", amountCents: originalCents, time: "00:00", impactCents: null },
+    { label: "Competing group offer matched", amountCents: p1, time: "01:52", impactCents: p1 - originalCents },
+    { label: "Breakfast package added", amountCents: p2, time: "03:29", impactCents: p2 - p1 },
+    { label: "Final group rate approved", amountCents: finalCents, time: "06:11", impactCents: finalCents - p2 },
   ];
   return { finalCents, steps, targetMet };
 }
@@ -276,17 +363,17 @@ function buildTranscript(
 ): TranscriptLineView[] {
   const finalText = `$${(finalCents / 100).toLocaleString("en-US")}`;
   return [
-    { time: "05:02", speaker: "PolicyScout", text: "I appreciate you reviewing my client's file." },
-    { time: "05:10", speaker: providerName, text: "I can apply the verified safe-driving discount." },
-    { time: "05:36", speaker: providerName, text: `That brings the final annual premium to ${finalText}.` },
+    { time: "05:02", speaker: "StayScout", text: "Thank you for reviewing our group booking request." },
+    { time: "05:10", speaker: providerName, text: "I can include the daily breakfast package for your group." },
+    { time: "05:36", speaker: providerName, text: `That brings the final group rate to ${finalText} per room, per night.` },
     {
       time: "05:41",
-      speaker: "PolicyScout",
+      speaker: "StayScout",
       text: targetMet
-        ? "That is within our target. No coverage changes, correct?"
-        : "Understood. Confirming no coverage changes at that price?",
+        ? "That is within our target. The room count and amenities are unchanged, correct?"
+        : "Understood. Confirming the stay details are unchanged at that rate?",
     },
-    { time: "05:45", speaker: providerName, text: "Correct. The limits and deductibles remain unchanged." },
+    { time: "05:45", speaker: providerName, text: "Correct. The dates, rooms, and included facilities remain unchanged." },
   ];
 }
 
@@ -360,10 +447,10 @@ function buildNegotiatorVars(
     policyPeriodCost: money(originalCents),
     monthlyCost: money(Math.round(originalCents / 12)),
     verifiedComparableMonthly: "not available",
-    allowedLeverageText: "No verified comparable quote is available; do not cite competitor pricing.",
+    allowedLeverageText: "No verified comparable group hotel offer is available; do not cite competitor pricing.",
     coverageSummary:
-      "Bodily injury 100/300, collision and comprehensive with a $500 deductible. Keep all coverage unchanged.",
-    quoteDisclaimer: "This simulated quote is non-binding and requires human verification.",
+      "Group stay: 24 deluxe rooms, 3 nights in Chicago, breakfast included, pool & gym access, Wi-Fi included. Keep dates, room count, and inclusions unchanged.",
+    quoteDisclaimer: "This simulated group rate is non-binding and requires human verification.",
   };
 }
 
@@ -428,7 +515,7 @@ export async function startNegotiationCall(
     savingsCents: 0,
     savingsPct: 0,
     targetMet: false,
-    steps: [{ label: "Starting quote", amountCents: originalCents, time: "00:00", impactCents: null }],
+    steps: [{ label: "Opening group rate", amountCents: originalCents, time: "00:00", impactCents: null }],
     transcript: [],
     mode: "live",
     callStatus: "ringing",
@@ -494,7 +581,7 @@ export function completeNegotiationCall(
 
   negotiation.transcript = snapshot.transcript.map((entry) => ({
     time: secondsToClock(entry.timeInCallSecs),
-    speaker: entry.role === "agent" ? "PolicyScout" : negotiation.providerName,
+    speaker: entry.role === "agent" ? "StayScout" : negotiation.providerName,
     text: entry.message,
   }));
 
@@ -585,7 +672,7 @@ function buildLiveSteps(originalCents: number, finalCents: number, snapshot: Con
     .slice(0, 2);
 
   const steps: NegotiationStepView[] = [
-    { label: "Starting quote", amountCents: originalCents, time: "00:00", impactCents: null },
+    { label: "Opening group rate", amountCents: originalCents, time: "00:00", impactCents: null },
   ];
   let previous = originalCents;
   intermediate.forEach((cents, index) => {
@@ -597,7 +684,7 @@ function buildLiveSteps(originalCents: number, finalCents: number, snapshot: Con
     });
     previous = cents;
   });
-  steps.push({ label: "Final approved adjustment", amountCents: finalCents, time: "on call", impactCents: finalCents - previous });
+  steps.push({ label: "Final group rate approved", amountCents: finalCents, time: "on call", impactCents: finalCents - previous });
   return steps;
 }
 
@@ -681,6 +768,13 @@ export function toClientSnapshot(workflow: WorkflowState, account: Account) {
             reviews: formatReviews(provider.reviewCount),
             rank: provider.rank,
             website: provider.website,
+            nightly: toDollars(provider.nightlyCents),
+            roomType: provider.roomType,
+            aggregators: provider.aggregators.map((agg) => ({
+              name: agg.name,
+              nightly: toDollars(agg.nightlyCents),
+              url: agg.url,
+            })),
           })),
         }
       : null,
@@ -698,11 +792,17 @@ export function toClientSnapshot(workflow: WorkflowState, account: Account) {
               reviews: formatReviews(quote.reviewCount),
               annual: toDollars(quote.annualizedCostCents ?? quote.effectiveComparisonCostCents),
               monthly: toDollars(quote.monthlyCents),
-              deductible: toDollars(quote.deductibleCents),
+              deductible: quote.roomType ?? toDollars(quote.deductibleCents),
               recommended: quote.recommended,
               coverageEquivalence: quote.coverageEquivalence,
               redFlags: quote.redFlags,
               rank: quote.rank,
+              roomType: quote.roomType,
+              aggregators: quote.aggregators.map((agg) => ({
+                name: agg.name,
+                nightly: toDollars(agg.nightlyCents),
+                url: agg.url,
+              })),
             })),
         }
       : null,

@@ -23,6 +23,12 @@ export type WorkflowStage =
   | "negotiating"
   | "result";
 
+export interface AggregatorPriceView {
+  name: string;
+  nightlyCents: number;
+  url: string;
+}
+
 export interface ResearchProviderView {
   providerId: string;
   providerName: string;
@@ -31,6 +37,9 @@ export interface ResearchProviderView {
   reviewCount: number | null;
   website: string | null;
   eligibility: string;
+  nightlyCents: number | null;
+  roomType: string | null;
+  aggregators: AggregatorPriceView[];
 }
 
 export interface QuoteView {
@@ -47,6 +56,8 @@ export interface QuoteView {
   coverageEquivalence: string;
   redFlags: string[];
   recommended: boolean;
+  roomType: string | null;
+  aggregators: AggregatorPriceView[];
 }
 
 export interface NegotiationStepView {
@@ -144,7 +155,90 @@ export class LiveCallRateLimitError extends Error {
   }
 }
 
+interface KvClient {
+  get<T>(key: string): Promise<T | null>;
+  set(key: string, value: unknown, options?: { ex?: number }): Promise<unknown>;
+  incr(key: string): Promise<number>;
+  expire(key: string, seconds: number): Promise<unknown>;
+  multi(): KvTransaction;
+}
+
+/** `set` returns the transaction so writes can be chained before `exec`. */
+interface KvTransaction {
+  set(key: string, value: unknown, options?: { ex?: number }): KvTransaction;
+  exec(): Promise<unknown>;
+}
+
+type MemoryEntry = { value: unknown; expiresAt: number | null };
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __policyscoutMemoryStore: Map<string, MemoryEntry> | undefined;
+}
+
+function memoryStore(): Map<string, MemoryEntry> {
+  globalThis.__policyscoutMemoryStore ??= new Map();
+  return globalThis.__policyscoutMemoryStore;
+}
+
+function readMemory(key: string): unknown | null {
+  const entry = memoryStore().get(key);
+  if (!entry) return null;
+  if (entry.expiresAt !== null && entry.expiresAt <= Date.now()) {
+    memoryStore().delete(key);
+    return null;
+  }
+  return entry.value;
+}
+
+function writeMemory(key: string, value: unknown, options?: { ex?: number }): void {
+  memoryStore().set(key, {
+    value,
+    expiresAt: options?.ex ? Date.now() + options.ex * 1000 : null,
+  });
+}
+
+/** Process-local KV used when Upstash Redis is not configured (local hackathon demo). */
+function createMemoryClient(): KvClient {
+  return {
+    async get<T>(key: string): Promise<T | null> {
+      return (readMemory(key) as T | null) ?? null;
+    },
+    async set(key: string, value: unknown, options?: { ex?: number }) {
+      writeMemory(key, value, options);
+      return "OK";
+    },
+    async incr(key: string) {
+      const existing = memoryStore().get(key);
+      const next = Number(existing && (existing.expiresAt === null || existing.expiresAt > Date.now()) ? existing.value : 0) + 1;
+      memoryStore().set(key, { value: next, expiresAt: existing?.expiresAt ?? null });
+      return next;
+    },
+    async expire(key: string, seconds: number) {
+      const entry = memoryStore().get(key);
+      if (!entry) return 0;
+      memoryStore().set(key, { value: entry.value, expiresAt: Date.now() + seconds * 1000 });
+      return 1;
+    },
+    multi() {
+      const pending: Array<{ key: string; value: unknown; options?: { ex?: number } }> = [];
+      const transaction = {
+        set(key: string, value: unknown, options?: { ex?: number }) {
+          pending.push({ key, value, options });
+          return transaction;
+        },
+        async exec() {
+          for (const write of pending) writeMemory(write.key, write.value, write.options);
+          return [];
+        },
+      };
+      return transaction;
+    },
+  };
+}
+
 let cachedRedis: Redis | null = null;
+let cachedMemory: KvClient | null = null;
 
 function redisConfigured(): boolean {
   const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
@@ -152,19 +246,21 @@ function redisConfigured(): boolean {
   return Boolean(url?.trim() && token?.trim());
 }
 
-function redis(): Redis {
-  if (!redisConfigured()) {
-    throw new WorkflowStoreError(
-      "PERSISTENCE_NOT_CONFIGURED",
-      "Workflow storage is not configured. Set the Upstash Redis environment variables.",
-    );
-  }
-  return (cachedRedis ??= Redis.fromEnv());
+/** True when using process memory instead of Upstash (no Redis env). */
+export function isMemoryPersistence(): boolean {
+  return !redisConfigured();
 }
 
-async function withPersistence<T>(operation: (client: Redis) => Promise<T>): Promise<T> {
+function kv(): KvClient {
+  if (redisConfigured()) {
+    return (cachedRedis ??= Redis.fromEnv()) as unknown as KvClient;
+  }
+  return (cachedMemory ??= createMemoryClient());
+}
+
+async function withPersistence<T>(operation: (client: KvClient) => Promise<T>): Promise<T> {
   try {
-    return await operation(redis());
+    return await operation(kv());
   } catch (error) {
     if (error instanceof WorkflowStoreError || error instanceof LiveCallRateLimitError) throw error;
     throw new WorkflowStoreError(
@@ -186,7 +282,7 @@ function quotaKey(prefix: string, identifier: string): string {
   return `${prefix}${createHash("sha256").update(identifier).digest("hex")}`;
 }
 
-async function incrementQuota(client: Redis, key: string): Promise<number> {
+async function incrementQuota(client: KvClient, key: string): Promise<number> {
   const starts = await client.incr(key);
   if (starts === 1) await client.expire(key, LIVE_CALL_QUOTA_WINDOW_SECONDS);
   return starts;

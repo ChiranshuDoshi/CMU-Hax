@@ -123,13 +123,18 @@ describe("app workflow store", () => {
     });
   });
 
-  it("fails clearly when durable storage is not configured", async () => {
+  it("uses in-memory persistence when Redis is not configured", async () => {
     delete process.env.KV_REST_API_URL;
     delete process.env.KV_REST_API_TOKEN;
+    globalThis.__policyscoutMemoryStore = undefined;
     const store = await loadStore();
 
-    await expect(store.getAccount("acct_missing")).rejects.toMatchObject({
-      code: "PERSISTENCE_NOT_CONFIGURED",
+    expect(store.isMemoryPersistence()).toBe(true);
+    const account = await store.createAccount("Blair", "blair@example.com");
+    expect(await store.getAccount(account.id)).toEqual(account);
+    expect(await store.getWorkflow(account.workflowId)).toMatchObject({
+      accountId: account.id,
+      stage: "profile",
     });
   });
 

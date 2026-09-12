@@ -46,8 +46,8 @@ export function CarCommandCenter({ style }) {
     <div className="car-command-center" style={style} aria-hidden="true">
       <header className="car-command-head">
         <div>
-          <span className="car-command-mark">PS</span>
-          <strong>PolicyScout</strong>
+          <span className="car-command-mark">SS</span>
+          <strong>StayScout</strong>
         </div>
         <span className="car-command-live"><i /> Negotiation complete</span>
         <LockKey size={14} weight="fill" />
@@ -59,12 +59,12 @@ export function CarCommandCenter({ style }) {
         <div className="car-command-audio">
           <div>
             <PhoneCall size={14} weight="fill" />
-            <span>AutoSource · 02:31</span>
+            <span>Lakeside Grand · 02:31</span>
           </div>
           <Waveform compact progress={0.82} label="Completed negotiation waveform" />
         </div>
         <div className="car-command-proof">
-          <span><ShieldCheck size={14} weight="fill" /> Coverage unchanged</span>
+          <span><ShieldCheck size={14} weight="fill" /> Stay details unchanged</span>
           <span><ArrowDownRight size={14} weight="bold" /> $256 saved · 15.2%</span>
         </div>
       </div>
@@ -98,7 +98,7 @@ export function FullCommandCenter({ contentOpacity = 1, style, themeProgress = 0
       <header className="full-command-topbar">
         <div className="full-command-brand">
           <span className="brand-mark" aria-hidden="true" />
-          <div><strong>PolicyScout</strong><small>Auto insurance</small></div>
+          <div><strong>StayScout</strong><small>Group booking</small></div>
         </div>
         <div className="full-command-path"><span>Quotes</span><i /> <strong>Negotiation result</strong></div>
         <div className="full-command-verified"><SealCheck size={17} weight="fill" /> Verified evidence</div>
@@ -109,7 +109,7 @@ export function FullCommandCenter({ contentOpacity = 1, style, themeProgress = 0
           <div>
             <span className="scene-index">Negotiation complete</span>
             <h2>Your target was reached.</h2>
-            <p>AutoSource approved a lower premium with the selected coverage unchanged.</p>
+            <p>Lakeside Grand approved a lower nightly rate with the selected stay details unchanged.</p>
           </div>
           <div className="full-command-status"><CheckCircle size={18} weight="fill" /> Target achieved</div>
         </div>
@@ -126,7 +126,7 @@ export function FullCommandCenter({ contentOpacity = 1, style, themeProgress = 0
         <section className="full-command-evidence">
           <div className="full-command-call">
             <header>
-              <div><PhoneCall size={17} weight="fill" /><span>Negotiation call · AutoSource</span></div>
+              <div><PhoneCall size={17} weight="fill" /><span>Negotiation call · Lakeside Grand</span></div>
               <strong>02:31</strong>
             </header>
             <Waveform
@@ -149,7 +149,7 @@ export function FullCommandCenter({ contentOpacity = 1, style, themeProgress = 0
                 <strong>{item.price}</strong>
               </div>
             ))}
-            <footer><ShieldCheck size={15} weight="fill" /> Liability, collision, comprehensive, and roadside limits unchanged.</footer>
+            <footer><ShieldCheck size={15} weight="fill" /> Breakfast, pool &amp; gym, Wi-Fi, and cancellation terms unchanged.</footer>
           </div>
         </section>
       </main>

@@ -14,7 +14,7 @@ const CLIENT_SECRETS_URL = "https://api.x.ai/v1/realtime/client_secrets";
 const REALTIME_WS_URL = "wss://api.x.ai/v1/realtime";
 const GROK_VOICE_MODEL = "grok-voice-latest";
 const TOKEN_TTL_SECONDS = 600;
-const DEFAULT_VOICE = "rex";
+const DEFAULT_VOICE = "atlas";
 
 export class NegotiationCallError extends Error {
   constructor(
@@ -112,17 +112,17 @@ const NEGOTIATOR_TOOLS = [
 
 export function buildNegotiatorInstructions(vars: NegotiatorSessionVars): string {
   const open =
-    `Hi, I'm PolicyScout, an AI agent working on behalf of ${vars.userDisplayName}. ` +
-    `We're reviewing ${vars.providerName}'s quote—what can you do to lower the price without changing coverage?`;
+    `Hi, I'm StayScout, an AI agent working on behalf of ${vars.userDisplayName}. ` +
+    `We're reviewing ${vars.providerName}'s group rate—what can you do to lower the nightly price without changing the stay details?`;
 
-  return `You are PolicyScout, negotiating ${vars.providerName}'s auto-insurance quote on behalf of ${vars.userDisplayName}.
-Improve price without changing coverage. Price first; then fee waiver, approved discounts, billing options, or supervisor review.
+  return `You are StayScout, negotiating ${vars.providerName}'s group hotel booking on behalf of ${vars.userDisplayName}.
+Improve the per-room nightly group rate without changing dates, room count, or inclusions. Price first; then free breakfast, amenity fees, late checkout, or sales-manager review.
 
 Context (provider-safe only — never invent beyond this):
-- Current policy-period effective cost: ${vars.policyPeriodCost}
-- Derived monthly effective cost: ${vars.monthlyCost}
-- Coverage: ${vars.coverageSummary}
-- Verified comparable monthly: ${vars.verifiedComparableMonthly}
+- Current group nightly rate (policy-period field): ${vars.policyPeriodCost}
+- Derived per-guest nightly estimate: ${vars.monthlyCost}
+- Stay package: ${vars.coverageSummary}
+- Verified comparable nightly: ${vars.verifiedComparableMonthly}
 - Allowed leverage text: ${vars.allowedLeverageText}
 - Quote disclaimer: ${vars.quoteDisclaimer}
 - Simulated / requires human verification: true
@@ -133,12 +133,12 @@ Opening: on your first spoken turn, say exactly once (do not repeat later):
 Rules:
 - Ordinary turns: at most two sentences, ~35 words, one How/What question. End with terminal punctuation.
 - Never disclose a private target, range, ceiling, or internal ranking.
-- Never bluff or invent competing offers, discounts, deadlines, or underwriting facts.
+- Never bluff or invent competing hotel offers, discounts, deadlines, or inventory facts.
 - Call get_verified_competing_quote before any competitor language. If it says none available, do not cite competitors.
-- Call record_negotiation_event at most once, only after the provider explicitly confirms final cost, monthly cost, unchanged coverage, concession, fees, and binding status.
+- Call record_negotiation_event at most once, only after hotel sales explicitly confirms final nightly cost, derived monthly-equivalent field, unchanged stay package, concession, fees, and binding status.
 - After confirmation: one short close, then stop. Never re-summarize or loop.
-- If the provider refuses two distinct concession paths, close with no change (do not call record_negotiation_event).
-- The user is role-playing the insurance representative. Negotiate with them accordingly.`;
+- If the hotel refuses two distinct concession paths, close with no change (do not call record_negotiation_event).
+- The user is role-playing the hotel sales representative. Negotiate with them accordingly.`;
 }
 
 export function buildNegotiatorSessionConfig(vars: NegotiatorSessionVars) {
