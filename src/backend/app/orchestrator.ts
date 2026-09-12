@@ -25,13 +25,20 @@ import type {
   Recommendation,
 } from "@/domain/schemas/person4";
 
+import {
+  assignHotelVoices,
+  buildAgentCall,
+  summarizeAgentCall,
+  type AgentCallView,
+} from "./agent-calls";
 import { buildConfirmedRequest, type CarProfile } from "./build-request";
+import { deriveLiveCallOutcome, secondsToClock } from "./live-call-outcome";
+import { isRecordingConfigured, renderNegotiationRecording } from "./negotiation-recording";
 import {
   fetchConversation,
   isLiveNegotiationConfigured,
   issueNegotiationCredential,
   NegotiationCallError,
-  type ConversationSnapshot,
   type NegotiationCredential,
   type NegotiatorSessionVars,
 } from "./negotiation-call";
@@ -56,6 +63,7 @@ export class AppError extends Error {
 }
 
 const MAX_DISCOUNT_RATE = 0.15; // negotiation can shave at most ~15% in the demo
+const STAY_NIGHTS = 3; // demo stay length used for group savings totals
 
 // ── Stage 1: market research → Top 5 ────────────────────────────────────────
 /** Destination-aware offline hotels (demo mode, or when live search finds none). */
@@ -296,7 +304,7 @@ export async function collectQuotes(workflow: WorkflowState): Promise<void> {
       monthlyCents: annualized === null ? null : Math.round(annualized / 12),
       deductibleCents: 50_000,
       coverageEquivalence: quote?.coverageEquivalence.status ?? "missing_information",
-      redFlags: quote?.redFlags.map((flag) => flag.message) ?? [],
+      redFlags: quote?.redFlags?.map((flag) => flag.message) ?? [],
       recommended: quote?.quoteId === recommendedQuoteId,
       roomType: hint?.roomType ?? null,
       aggregators: (hint?.aggregators ?? []).map((agg) => ({
@@ -391,8 +399,9 @@ function resolveSelectedQuote(workflow: WorkflowState, selectedQuoteId?: string)
   return selected;
 }
 
-function quoteOriginalCents(quote: QuoteView): number {
-  const cents = quote.effectiveComparisonCostCents ?? quote.annualizedCostCents ?? 0;
+function quoteOriginalCents(workflow: WorkflowState, quote: QuoteView): number {
+  const agentQuote = workflow.agentCalls?.find((call) => call.quoteId === quote.quoteId)?.agentQuoteCents;
+  const cents = agentQuote || quote.effectiveComparisonCostCents || quote.annualizedCostCents || 0;
   if (cents <= 0) throw new AppError("QUOTE_PRICE_MISSING", "The selected quote has no comparable price.");
   return cents;
 }
@@ -404,7 +413,7 @@ export function negotiate(
   selectedQuoteId?: string,
 ): void {
   const selected = resolveSelectedQuote(workflow, selectedQuoteId);
-  const originalCents = quoteOriginalCents(selected);
+  const originalCents = quoteOriginalCents(workflow, selected);
   const { finalCents, steps, targetMet } = simulateConcession(originalCents, targetAmountCents);
   const savingsCents = Math.max(0, originalCents - finalCents);
 
@@ -491,7 +500,7 @@ export async function startNegotiationCall(
   selectedQuoteId?: string,
 ): Promise<StartNegotiationCallResult> {
   const selected = resolveSelectedQuote(workflow, selectedQuoteId);
-  const originalCents = quoteOriginalCents(selected);
+  const originalCents = quoteOriginalCents(workflow, selected);
   if (!isLiveNegotiationConfigured()) {
     throw new AppError("NOT_CONFIGURED", "In-app voice negotiation is not configured.", 503);
   }
@@ -563,45 +572,42 @@ export function completeNegotiationCall(
   if (!negotiation || negotiation.mode !== "live") {
     throw new AppError("NO_ACTIVE_CALL", "No live negotiation call is in progress.");
   }
-  if (negotiation.callStatus === "completed") return;
 
-  const snapshot: ConversationSnapshot = {
-    phase: "completed",
-    transcript: (input.transcript ?? [])
-      .filter((entry) => entry.message.trim().length > 0)
-      .map((entry, index) => ({
-        role: entry.role,
-        message: entry.message.trim(),
-        timeInCallSecs: entry.timeInCallSecs ?? index * 8,
-      })),
-    summary: input.summary?.trim() || negotiation.callSummary,
-    hasAudio: false,
-    dataCollection: {},
-  };
+  const liveTranscript = (input.transcript ?? [])
+    .filter((entry) => entry.message.trim().length > 0)
+    .map((entry, index) => ({
+      role: entry.role,
+      message: entry.message.trim(),
+      timeInCallSecs: entry.timeInCallSecs ?? index * 8,
+    }));
 
-  negotiation.transcript = snapshot.transcript.map((entry) => ({
+  if (negotiation.callStatus === "completed" && liveTranscript.length === 0) return;
+
+  const outcome = deriveLiveCallOutcome({
+    originalCents: negotiation.originalCents,
+    targetCents: negotiation.targetAmountCents,
+    transcript: liveTranscript,
+    recordedFinalCents: negotiation.recordedFinalCents,
+    providerName: negotiation.providerName,
+  });
+
+  negotiation.transcript = outcome.transcript.map((entry) => ({
     time: secondsToClock(entry.timeInCallSecs),
     speaker: entry.role === "agent" ? "StayScout" : negotiation.providerName,
     text: entry.message,
   }));
 
-  const finalCents =
-    negotiation.recordedFinalCents ??
-    deriveFinalCents(negotiation.originalCents, negotiation.targetAmountCents, snapshot);
-  const savingsCents = Math.max(0, negotiation.originalCents - finalCents);
-  negotiation.finalCents = finalCents;
+  const savingsCents = Math.max(0, negotiation.originalCents - outcome.finalCents);
+  negotiation.finalCents = outcome.finalCents;
   negotiation.savingsCents = savingsCents;
   negotiation.savingsPct =
     negotiation.originalCents > 0 ? Math.round((savingsCents / negotiation.originalCents) * 1000) / 10 : 0;
-  negotiation.targetMet = finalCents <= negotiation.targetAmountCents;
-  negotiation.steps = buildLiveSteps(negotiation.originalCents, finalCents, snapshot);
+  negotiation.targetMet = outcome.targetMet;
+  negotiation.steps = outcome.steps;
   negotiation.callStatus = "completed";
   negotiation.recordingAvailable = false;
-  negotiation.callSummary = snapshot.summary;
+  negotiation.callSummary = input.summary?.trim() || outcome.summary;
   negotiation.errorMessage = null;
-  if (negotiation.transcript.length === 0) {
-    negotiation.transcript = buildTranscript(negotiation.providerName, finalCents, negotiation.targetMet);
-  }
   workflow.stage = "result";
   touch(workflow);
 }
@@ -622,70 +628,6 @@ export function recordNegotiationEvent(
   const note = String(event.providerResponse ?? event.concessionType ?? "").trim();
   if (note) negotiation.callSummary = note.slice(0, 1000);
   touch(workflow);
-}
-
-function secondsToClock(seconds: number): string {
-  const total = Math.max(0, Math.floor(seconds));
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-
-/** Extracts dollar amounts (as cents) from free text, e.g. "$1,428" or "$1428.00". */
-function parseDollarAmountsCents(text: string): number[] {
-  const amounts: number[] = [];
-  const pattern = /\$\s?([0-9][0-9,]{2,})(?:\.(\d{2}))?/g;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(text)) !== null) {
-    const whole = Number(match[1].replace(/,/g, ""));
-    const cents = whole * 100 + (match[2] ? Number(match[2]) : 0);
-    if (Number.isFinite(cents) && cents > 0) amounts.push(cents);
-  }
-  return amounts;
-}
-
-function deriveFinalCents(originalCents: number, targetCents: number, snapshot: ConversationSnapshot): number {
-  // 1) A structured data-collection field configured on the agent.
-  for (const [key, raw] of Object.entries(snapshot.dataCollection)) {
-    if (!/final|negotiat|agreed|premium|price|quote/i.test(key)) continue;
-    const [cents] = parseDollarAmountsCents(raw.startsWith("$") ? raw : `$${raw}`);
-    if (cents && cents >= originalCents * 0.4 && cents <= originalCents * 1.2) return Math.min(cents, originalCents);
-  }
-  // 2) Lowest plausible price the agent stated on the call.
-  const agentPrices = snapshot.transcript
-    .filter((entry) => entry.role === "agent")
-    .flatMap((entry) => parseDollarAmountsCents(entry.message))
-    .filter((cents) => cents >= originalCents * 0.5 && cents < originalCents);
-  if (agentPrices.length > 0) return Math.min(...agentPrices);
-  // 3) Fall back to the simulated concession target.
-  return simulateConcession(originalCents, targetCents).finalCents;
-}
-
-function buildLiveSteps(originalCents: number, finalCents: number, snapshot: ConversationSnapshot): NegotiationStepView[] {
-  const intermediate = [
-    ...new Set(
-      snapshot.transcript
-        .filter((entry) => entry.role === "agent")
-        .flatMap((entry) => parseDollarAmountsCents(entry.message))
-        .filter((cents) => cents > finalCents && cents < originalCents),
-    ),
-  ]
-    .sort((a, b) => b - a)
-    .slice(0, 2);
-
-  const steps: NegotiationStepView[] = [
-    { label: "Opening group rate", amountCents: originalCents, time: "00:00", impactCents: null },
-  ];
-  let previous = originalCents;
-  intermediate.forEach((cents, index) => {
-    steps.push({
-      label: `Counter ${index + 1} accepted`,
-      amountCents: cents,
-      time: secondsToClock((index + 1) * 45),
-      impactCents: cents - previous,
-    });
-    previous = cents;
-  });
-  steps.push({ label: "Final group rate approved", amountCents: finalCents, time: "on call", impactCents: finalCents - previous });
-  return steps;
 }
 
 /**
@@ -741,14 +683,63 @@ function formatReviews(count: number | null): string {
   return count >= 1_000 ? `${(count / 1_000).toFixed(1)}k` : String(count);
 }
 
-const DEAL_TRANSCRIPT_PATTERN =
-  /\$|%|\b(discount|price|premium|coverage|deductible|waive|deal|agree|confirm|lower|reduc|match|monthly|annual|final|offer|commit|save|saving|term|rate|quote)\b/i;
+/**
+ * Stage 2.5: the agent "calls" the hotels the user shortlisted and returns a
+ * negotiated nightly rate below the best aggregator price. No real call is
+ * placed — see `agent-calls.ts`.
+ */
+export async function runAgentCalls(
+  workflow: WorkflowState,
+  selectedQuoteIds: readonly string[],
+): Promise<void> {
+  const quotes = workflow.quotes;
+  if (!quotes || quotes.length === 0) {
+    throw new AppError("QUOTES_REQUIRED", "Collect hotel rates before calling hotels.");
+  }
 
-/** Keeps only the deal-relevant lines (price, concessions, agreement) for the excerpt. */
-function selectDealTranscript(transcript: TranscriptLineView[]): TranscriptLineView[] {
-  const relevant = transcript.filter((line) => DEAL_TRANSCRIPT_PATTERN.test(line.text));
-  const chosen = relevant.length >= 3 ? relevant : transcript;
-  return chosen.slice(-12);
+  const wanted = new Set(selectedQuoteIds);
+  const chosen = wanted.size > 0 ? quotes.filter((quote) => wanted.has(quote.quoteId)) : quotes;
+  if (chosen.length === 0) {
+    throw new AppError("NO_HOTELS_SELECTED", "Select at least one hotel for StayScout to call.");
+  }
+
+  const profile = workflow.profile as { annualMileage?: number } | null;
+  const rooms = profile?.annualMileage && profile.annualMileage > 0 ? profile.annualMileage : 24;
+  const drafted = chosen
+    .map((quote) => buildAgentCall(quote, { rooms, nights: STAY_NIGHTS }))
+    .filter((call): call is AgentCallView => call !== null);
+  const voices = assignHotelVoices(drafted.map((call) => call.providerId));
+  const calls = drafted
+    .map((call) => ({
+      ...call,
+      hotelVoice: voices.get(call.providerId) ?? call.hotelVoice,
+      recordingAvailable: false,
+    }))
+    .sort((a, b) => a.agentQuoteCents - b.agentQuoteCents);
+
+  if (calls.length === 0) {
+    throw new AppError("NO_RATES", "The selected hotels have no nightly rate to negotiate against.");
+  }
+
+  if (isRecordingConfigured()) {
+    await Promise.all(
+      calls.map(async (call) => {
+        try {
+          await renderNegotiationRecording(call.script, { hotelVoice: call.hotelVoice });
+          call.recordingAvailable = true;
+        } catch (error) {
+          console.warn(
+            "[stayscout] Grok recording failed for",
+            call.providerName,
+            error instanceof Error ? error.message : error,
+          );
+        }
+      }),
+    );
+  }
+
+  workflow.agentCalls = calls;
+  workflow.updatedAt = new Date().toISOString();
 }
 
 export function toClientSnapshot(workflow: WorkflowState, account: Account) {
@@ -806,6 +797,29 @@ export function toClientSnapshot(workflow: WorkflowState, account: Account) {
             })),
         }
       : null,
+    agentCalls: workflow.agentCalls
+      ? workflow.agentCalls.map((call) => ({
+          providerId: call.providerId,
+          quoteId: call.quoteId,
+          name: call.providerName,
+          shortName: shortName(call.providerName),
+          aggregatorLow: toDollars(call.aggregatorLowCents),
+          aggregatorName: call.aggregatorName,
+          agentQuote: toDollars(call.agentQuoteCents),
+          saved: toDollars(call.savedCents),
+          savedPct: call.savedPct,
+          totalSaved: toDollars(call.totalSavedCents),
+          concession: call.concession,
+          roomType: call.roomType,
+          rooms: call.rooms,
+          nights: call.nights,
+          summary: summarizeAgentCall(call),
+          script: call.script,
+          recordingUrl: call.recordingAvailable
+            ? `/api/app/agent-calls/recording?providerId=${encodeURIComponent(call.providerId)}`
+            : null,
+        }))
+      : null,
     negotiation: workflow.negotiation
       ? {
           selectedQuoteId: workflow.negotiation.selectedQuoteId,
@@ -827,7 +841,7 @@ export function toClientSnapshot(workflow: WorkflowState, account: Account) {
             time: step.time,
             impact: step.impactCents === null ? null : toDollars(step.impactCents),
           })),
-          transcript: selectDealTranscript(workflow.negotiation.transcript),
+          transcript: workflow.negotiation.transcript,
         }
       : null,
   };

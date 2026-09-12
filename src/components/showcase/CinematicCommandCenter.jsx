@@ -136,7 +136,7 @@ export function FullCommandCenter({ contentOpacity = 1, style, themeProgress = 0
               unplayedColor={theme["--command-wave-muted"]}
               label="Negotiation call waveform"
             />
-            <footer><LockKey size={14} weight="fill" /> Recording and transcript verified</footer>
+            <footer><LockKey size={14} weight="fill" /> Recording verified</footer>
           </div>
 
           <div className="full-command-timeline">

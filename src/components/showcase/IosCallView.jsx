@@ -69,8 +69,6 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
   const startedRef = useRef(false);
   const conversationIdRef = useRef(null);
   const endedRef = useRef(false);
-  const autoEndTimerRef = useRef(null);
-  const agentSummaryHistoryRef = useRef([]);
   const sessionRef = useRef(null);
 
   useEffect(() => {
@@ -80,34 +78,30 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
   }, [phase]);
 
   useEffect(() => () => {
-    window.clearTimeout(autoEndTimerRef.current);
     void sessionRef.current?.end();
   }, []);
 
   async function finishCall() {
     if (endedRef.current) return;
     endedRef.current = true;
-    window.clearTimeout(autoEndTimerRef.current);
     setPhase("ended");
     const session = sessionRef.current;
     sessionRef.current = null;
-    const transcript = session ? await session.end() : [];
     const conversationId = conversationIdRef.current || session?.getSessionId?.() || null;
+    // Close the overlay immediately; wait for the saved transcript before
+    // filling the dashboard so we don't show a canned outcome.
+    onEnded?.(conversationId, null, { pending: true });
+    const transcript = session ? await session.end() : [];
     try {
       if (conversationId) {
-        await api.completeCall({ conversationId, transcript });
+        const res = await api.completeCall({ conversationId, transcript });
+        onEnded?.(conversationId, res.snapshot ?? null);
+        return;
       }
     } catch {
-      // Poller / result path still advances from onEnded.
+      // Fall through and still open the dashboard.
     }
-    onEnded?.(conversationId);
-  }
-
-  function scheduleAutoEnd(delayMs = 5000) {
-    if (endedRef.current || autoEndTimerRef.current) return;
-    autoEndTimerRef.current = window.setTimeout(() => {
-      void finishCall();
-    }, delayMs);
+    onEnded?.(conversationId, null);
   }
 
   async function answer() {
@@ -119,7 +113,7 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
     if (!cred || cred.transport !== "grok" || !cred.clientSecret) {
       startedRef.current = false;
       setPhase("incoming");
-      onError?.("Grok Voice is not configured for this call.");
+      onError?.("Live negotiation is not configured for this call.");
       return;
     }
 
@@ -135,21 +129,6 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
 
     const session = createGrokVoiceSession({
       credential: cred,
-      clientTools: {
-        get_verified_competing_quote: () => JSON.stringify({
-          allowedLeverageText: "No verified comparable quote is available; do not cite competitor pricing.",
-          verifiedComparableMonthlyEffectiveCost: "not available",
-        }),
-        record_negotiation_event: async (parameters) => {
-          scheduleAutoEnd();
-          try {
-            await api.recordNegotiationEvent(parameters);
-            return JSON.stringify({ accepted: true, requiresHumanReview: true, ingested: true });
-          } catch {
-            return JSON.stringify({ accepted: false, requiresHumanReview: true, ingested: false });
-          }
-        },
-      },
       onSessionId: (conversationId) => {
         if (!conversationId || conversationIdRef.current === conversationId) return;
         conversationIdRef.current = conversationId;
@@ -167,16 +146,19 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
           }
           return [...current.slice(-6), { role, message }];
         });
-        if (role === "agent") {
-          const normalized = message.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-          if (normalized.length > 90) {
-            if (agentSummaryHistoryRef.current.includes(normalized)) scheduleAutoEnd(2500);
-            agentSummaryHistoryRef.current = [...agentSummaryHistoryRef.current.slice(-4), normalized];
-          }
-        }
       },
       onError: (message) => {
-        onError?.(typeof message === "string" ? message : "The call ran into an error.");
+        const detail = typeof message === "string" ? message : "The call ran into an error.";
+        // Start-up failures still abort. Mid-call Grok errors are usually
+        // recoverable (active response, barge-in) and must not unmount the UI.
+        if (!sessionRef.current || endedRef.current) {
+          onError?.(detail);
+          return;
+        }
+        setCaptions((current) => [...current.slice(-5), { role: "agent", message: "One moment — still on the line." }]);
+      },
+      onHangup: () => {
+        void finishCall();
       },
       onDisconnect: () => {
         void finishCall();
@@ -218,12 +200,12 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
         ? "Connecting…"
         : phase === "active"
           ? formatClock(seconds)
-          : "Call ended · preparing your results";
+          : "Call ended";
 
   return (
     <div style={overlayStyle} role="dialog" aria-modal="true" aria-label="StayScout negotiation call">
       <div>
-        <p style={{ margin: 0, opacity: 0.7, fontSize: 14, letterSpacing: 0.4 }}>StayScout · Grok Voice</p>
+        <p style={{ margin: 0, opacity: 0.7, fontSize: 14, letterSpacing: 0.4 }}>StayScout Negotiator</p>
         <div style={avatarStyle} aria-hidden="true">SS</div>
         <h2 style={{ margin: "0 0 6px", fontSize: 30, fontWeight: 600 }}>StayScout Negotiator</h2>
         <p style={{ margin: 0, opacity: 0.82, fontSize: 16 }}>{statusText}</p>
@@ -246,7 +228,7 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
         )}
         {phase === "ended" && (
           <p style={{ margin: 0, display: "inline-flex", gap: 10, alignItems: "center", opacity: 0.85 }}>
-            <SpinnerGap className="spin" size={20} weight="bold" /> Transcribing and saving the recording…
+            <SpinnerGap className="spin" size={20} weight="bold" /> Saving the call…
           </p>
         )}
       </div>
