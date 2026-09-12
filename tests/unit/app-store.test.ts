@@ -138,9 +138,9 @@ describe("app workflow store", () => {
     });
   });
 
-  it("reserves only three live-call starts per account in the quota window", async () => {
+  it("rate-limits live-call starts after the account quota is exhausted", async () => {
     const store = await loadStore();
-    for (let start = 0; start < 3; start += 1) {
+    for (let start = 0; start < store.MAX_LIVE_CALL_STARTS_PER_ACCOUNT; start += 1) {
       await store.reserveLiveCallStart("acct_test", "203.0.113.10");
     }
 

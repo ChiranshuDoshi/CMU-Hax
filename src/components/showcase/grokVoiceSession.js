@@ -3,6 +3,8 @@
  * Streams mic PCM to the WebSocket and plays assistant PCM audio back.
  */
 
+import { looksLikeNegotiationClose, shouldAutoEndCall } from "./negotiationClose.js";
+
 const SAMPLE_RATE = 24000;
 
 function floatTo16BitPCM(float32) {
@@ -25,12 +27,14 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
-function base64ToInt16(base64) {
+function base64ToBytes(base64) {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return new Int16Array(bytes.buffer);
+  return bytes;
 }
+
+const RECOVERABLE_ERROR = /active response|already in progress|cancelled|canceled|interruption|conversation already|no item/i;
 
 function downsampleTo24k(float32, inputRate) {
   if (inputRate === SAMPLE_RATE) return float32;
@@ -50,6 +54,7 @@ export function createGrokVoiceSession({
   onMessage,
   onError,
   onDisconnect,
+  onHangup,
 }) {
   let ws = null;
   let mediaStream = null;
@@ -61,8 +66,15 @@ export function createGrokVoiceSession({
   let closed = false;
   let startedSpeaking = false;
   let waitingForSessionUpdate = Boolean(credential.session);
+  let responseInFlight = false;
+  let continueAfterResponse = false;
   let nextPlayTime = 0;
+  let pcmCarry = new Uint8Array(0);
+  let agentSpeaking = false;
+  let hangupRequested = false;
+  let hangupTimer = null;
   let sessionId = crypto.randomUUID();
+  const playingNodes = new Set();
   const pendingToolCalls = new Map();
   const transcript = [];
   const startedAt = Date.now();
@@ -137,9 +149,18 @@ export function createGrokVoiceSession({
       emitMessage("user", last.message);
       return;
     }
-    if (last?.role === "user" && last.final && last.message === text) {
-      emitMessage("user", text);
-      return;
+    if (last?.role === "user") {
+      const same =
+        text === last.message ||
+        text.startsWith(last.message) ||
+        last.message.startsWith(text) ||
+        text.includes(last.message);
+      if (same) {
+        last.message = text.length >= last.message.length ? text : last.message;
+        if (final) last.final = true;
+        emitMessage("user", last.message);
+        return;
+      }
     }
     transcript.push({
       role: "user",
@@ -173,10 +194,117 @@ export function createGrokVoiceSession({
     if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(event));
   }
 
+  function userTurnCount() {
+    return transcript.filter((turn) => turn.role === "user").length;
+  }
+
+  function lastAgentText() {
+    for (let i = transcript.length - 1; i >= 0; i -= 1) {
+      if (transcript[i].role === "agent") return transcript[i].message;
+    }
+    return "";
+  }
+
+  function playbackRemainingMs() {
+    if (!playbackContext || nextPlayTime <= 0) return 0;
+    return Math.max(0, (nextPlayTime - playbackContext.currentTime) * 1000);
+  }
+
+  function finishFromAgent() {
+    if (closed) return;
+    (onHangup ?? onDisconnect)?.();
+  }
+
+  function flushHangupIfReady() {
+    if (!hangupRequested || closed) return;
+    if (responseInFlight) return;
+    if (hangupTimer) window.clearTimeout(hangupTimer);
+    const wait = playbackRemainingMs() + 450;
+    hangupTimer = window.setTimeout(() => {
+      if (closed) return;
+      const extra = playbackRemainingMs();
+      if (extra > 80) {
+        hangupTimer = window.setTimeout(finishFromAgent, extra + 250);
+        return;
+      }
+      finishFromAgent();
+    }, wait);
+  }
+
+  function requestHangup() {
+    if (closed || hangupRequested) {
+      flushHangupIfReady();
+      return;
+    }
+    hangupRequested = true;
+    muted = true;
+    agentSpeaking = true;
+    mediaStream?.getAudioTracks().forEach((track) => {
+      track.enabled = false;
+    });
+    flushHangupIfReady();
+  }
+
+  function considerAutoEnd() {
+    if (hangupRequested || closed) return;
+    if (shouldAutoEndCall({ userTurns: userTurnCount(), lastAgentText: lastAgentText() })) {
+      requestHangup();
+    }
+  }
+
+  function canAcceptEndCall() {
+    return userTurnCount() >= 2 || looksLikeNegotiationClose(lastAgentText());
+  }
+
+  function handleEndCall(event) {
+    const accepted = canAcceptEndCall();
+    send({
+      type: "conversation.item.create",
+      item: {
+        type: "function_call_output",
+        call_id: event.call_id,
+        output: JSON.stringify(
+          accepted
+            ? { ended: true }
+            : { ended: false, reason: "Keep negotiating until a final rate is confirmed or refused twice." },
+        ),
+      },
+    });
+    if (accepted) {
+      requestHangup();
+      return;
+    }
+    requestResponse();
+  }
+
+  function requestResponse() {
+    if (closed || hangupRequested || ws?.readyState !== WebSocket.OPEN) return;
+    if (responseInFlight) {
+      continueAfterResponse = true;
+      return;
+    }
+    responseInFlight = true;
+    send({ type: "response.create" });
+  }
+
   function maybeStartSpeaking() {
     if (startedSpeaking || waitingForSessionUpdate) return;
     startedSpeaking = true;
-    send({ type: "response.create" });
+    requestResponse();
+  }
+
+  function stopPlayback() {
+    nextPlayTime = 0;
+    pcmCarry = new Uint8Array(0);
+    agentSpeaking = false;
+    for (const node of playingNodes) {
+      try {
+        node.stop();
+      } catch {
+        /* already stopped */
+      }
+    }
+    playingNodes.clear();
   }
 
   async function ensurePlayback() {
@@ -188,19 +316,33 @@ export function createGrokVoiceSession({
   }
 
   async function playPcmBase64(base64) {
-    const ctx = await ensurePlayback();
-    const int16 = base64ToInt16(base64);
-    if (!int16.length) return;
-    const float32 = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i += 1) float32[i] = int16[i] / 0x8000;
-    const audioBuffer = ctx.createBuffer(1, float32.length, SAMPLE_RATE);
-    audioBuffer.copyToChannel(float32, 0);
-    const node = ctx.createBufferSource();
-    node.buffer = audioBuffer;
-    node.connect(ctx.destination);
-    const startAt = Math.max(ctx.currentTime + 0.02, nextPlayTime);
-    node.start(startAt);
-    nextPlayTime = startAt + audioBuffer.duration;
+    try {
+      const incoming = base64ToBytes(base64);
+      if (!incoming.length) return;
+      const merged = new Uint8Array(pcmCarry.length + incoming.length);
+      merged.set(pcmCarry);
+      merged.set(incoming, pcmCarry.length);
+      const even = merged.byteLength - (merged.byteLength % 2);
+      pcmCarry = even < merged.byteLength ? merged.slice(even) : new Uint8Array(0);
+      if (even < 2) return;
+      const int16 = new Int16Array(merged.buffer, merged.byteOffset, even / 2);
+      const ctx = await ensurePlayback();
+      const float32 = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i += 1) float32[i] = int16[i] / 0x8000;
+      const audioBuffer = ctx.createBuffer(1, float32.length, SAMPLE_RATE);
+      audioBuffer.copyToChannel(float32, 0);
+      const node = ctx.createBufferSource();
+      node.buffer = audioBuffer;
+      node.connect(ctx.destination);
+      node.onended = () => playingNodes.delete(node);
+      const startAt = Math.max(ctx.currentTime + 0.02, nextPlayTime);
+      playingNodes.add(node);
+      node.start(startAt);
+      nextPlayTime = startAt + audioBuffer.duration;
+      agentSpeaking = true;
+    } catch {
+      /* A bad audio frame must not tear down the call. */
+    }
   }
 
   async function handleToolCall(event) {
@@ -231,7 +373,7 @@ export function createGrokVoiceSession({
       },
     });
     pendingToolCalls.delete(callId);
-    if (pendingToolCalls.size === 0) send({ type: "response.create" });
+    if (pendingToolCalls.size === 0) requestResponse();
   }
 
   function handleServerEvent(event) {
@@ -256,7 +398,10 @@ export function createGrokVoiceSession({
       case "response.output_audio.delta":
       case "response.audio.delta": {
         const chunk = event.delta ?? event.audio;
-        if (chunk) void playPcmBase64(chunk);
+        if (chunk) {
+          agentSpeaking = true;
+          void playPcmBase64(chunk);
+        }
         break;
       }
       case "response.output_audio_transcript.delta":
@@ -274,12 +419,43 @@ export function createGrokVoiceSession({
       case "conversation.item.input_audio_transcription.updated":
         if (event.transcript) upsertUserTranscript(event.transcript, { final: false });
         break;
+      case "response.created":
+        responseInFlight = true;
+        break;
+      case "response.done":
+      case "response.output_audio.done":
+        responseInFlight = event.type === "response.done" ? false : responseInFlight;
+        if (event.type === "response.done") {
+          if (!hangupRequested) agentSpeaking = false;
+          if (continueAfterResponse && !hangupRequested) {
+            continueAfterResponse = false;
+            requestResponse();
+          } else if (hangupRequested) {
+            flushHangupIfReady();
+          } else {
+            considerAutoEnd();
+          }
+        }
+        break;
+      case "input_audio_buffer.speech_started":
+        // Echo of the agent's own speakers must not cancel playback.
+        if (agentSpeaking || hangupRequested) break;
+        stopPlayback();
+        break;
       case "response.function_call_arguments.done":
+        if ((event.name ?? event.item?.name) === "end_call") {
+          handleEndCall(event);
+          break;
+        }
         void handleToolCall(event);
         break;
-      case "error":
-        onError?.(event.error?.message || event.message || "Grok Voice error");
+      case "error": {
+        const detail = event.error?.message || event.message || "Grok Voice error";
+        responseInFlight = false;
+        if (RECOVERABLE_ERROR.test(String(detail))) break;
+        onError?.(detail);
         break;
+      }
       default:
         break;
     }
@@ -298,7 +474,7 @@ export function createGrokVoiceSession({
     source = captureContext.createMediaStreamSource(mediaStream);
     processor = captureContext.createScriptProcessor(4096, 1, 1);
     processor.onaudioprocess = (audioEvent) => {
-      if (closed || muted || ws?.readyState !== WebSocket.OPEN) return;
+      if (closed || muted || hangupRequested || agentSpeaking || ws?.readyState !== WebSocket.OPEN) return;
       const input = audioEvent.inputBuffer.getChannelData(0);
       const downsampled = downsampleTo24k(input, captureContext.sampleRate);
       const pcm = floatTo16BitPCM(downsampled);
@@ -353,6 +529,8 @@ export function createGrokVoiceSession({
     async end() {
       if (closed) return this.getTranscript();
       closed = true;
+      hangupRequested = true;
+      if (hangupTimer) window.clearTimeout(hangupTimer);
       try {
         processor?.disconnect();
         source?.disconnect();

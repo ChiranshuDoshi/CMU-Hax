@@ -68,64 +68,20 @@ export interface NegotiatorSessionVars {
   verifiedComparableMonthly: string;
 }
 
-const NEGOTIATOR_TOOLS = [
-  {
-    type: "function",
-    name: "get_verified_competing_quote",
-    description:
-      "Load only verified allowed leverage; an empty result means no competitor may be mentioned.",
-    parameters: { type: "object", properties: {}, required: [] as string[] },
-  },
-  {
-    type: "function",
-    name: "record_negotiation_event",
-    description:
-      "Browser-side human-review-only improved-terms recording from exact provider transcript evidence. Call at most once after the provider confirms every improved term. Never call for no-change or callback.",
-    parameters: {
-      type: "object",
-      required: [
-        "outcome",
-        "providerResponse",
-        "finalCostCents",
-        "derivedMonthlyEffectiveCostCents",
-        "coverageUnchanged",
-        "concessionType",
-        "addedFeesCents",
-        "bindingStatus",
-      ],
-      properties: {
-        outcome: { type: "string", enum: ["improved_terms"] },
-        providerResponse: { type: "string" },
-        finalCostCents: { type: "integer" },
-        derivedMonthlyEffectiveCostCents: { type: "integer" },
-        coverageUnchanged: { type: "boolean" },
-        concessionType: { type: "string" },
-        addedFeesCents: { type: "integer", minimum: 0 },
-        bindingStatus: {
-          type: "string",
-          enum: ["binding", "non_binding", "pending_callback", "pending_review"],
-        },
-      },
-    },
-  },
-] as const;
-
 export function buildNegotiatorInstructions(vars: NegotiatorSessionVars): string {
   const open =
-    `Hi, I'm StayScout, an AI agent working on behalf of ${vars.userDisplayName}. ` +
+    `Hi, I'm StayScout, calling on behalf of ${vars.userDisplayName}. ` +
     `We're reviewing ${vars.providerName}'s group rate—what can you do to lower the nightly price without changing the stay details?`;
 
   return `You are StayScout, negotiating ${vars.providerName}'s group hotel booking on behalf of ${vars.userDisplayName}.
 Improve the per-room nightly group rate without changing dates, room count, or inclusions. Price first; then free breakfast, amenity fees, late checkout, or sales-manager review.
 
 Context (provider-safe only — never invent beyond this):
-- Current group nightly rate (policy-period field): ${vars.policyPeriodCost}
-- Derived per-guest nightly estimate: ${vars.monthlyCost}
+- Current group nightly rate: ${vars.policyPeriodCost}
 - Stay package: ${vars.coverageSummary}
 - Verified comparable nightly: ${vars.verifiedComparableMonthly}
-- Allowed leverage text: ${vars.allowedLeverageText}
+- Allowed leverage: ${vars.allowedLeverageText}
 - Quote disclaimer: ${vars.quoteDisclaimer}
-- Simulated / requires human verification: true
 
 Opening: on your first spoken turn, say exactly once (do not repeat later):
 "${open}"
@@ -134,23 +90,39 @@ Rules:
 - Ordinary turns: at most two sentences, ~35 words, one How/What question. End with terminal punctuation.
 - Never disclose a private target, range, ceiling, or internal ranking.
 - Never bluff or invent competing hotel offers, discounts, deadlines, or inventory facts.
-- Call get_verified_competing_quote before any competitor language. If it says none available, do not cite competitors.
-- Call record_negotiation_event at most once, only after hotel sales explicitly confirms final nightly cost, derived monthly-equivalent field, unchanged stay package, concession, fees, and binding status.
-- After confirmation: one short close, then stop. Never re-summarize or loop.
-- If the hotel refuses two distinct concession paths, close with no change (do not call record_negotiation_event).
+- After the hotel confirms a final nightly rate, or refuses two distinct concession paths: speak one short close with no question. Then call end_call. Do not wait for another reply.
+- Never call end_call until that close has been spoken. Never re-summarize or loop after the close.
 - The user is role-playing the hotel sales representative. Negotiate with them accordingly.`;
 }
+
+export const END_CALL_TOOL = {
+  type: "function",
+  name: "end_call",
+  description:
+    "Hang up after you have spoken a final closing sentence. Call only when the nightly rate is confirmed or the hotel has refused twice.",
+  parameters: {
+    type: "object",
+    properties: {
+      reason: {
+        type: "string",
+        description: "confirmed_rate or no_concession",
+      },
+    },
+    required: ["reason"],
+  },
+} as const;
 
 export function buildNegotiatorSessionConfig(vars: NegotiatorSessionVars) {
   const voice = envValue("XAI_NEGOTIATOR_VOICE") ?? DEFAULT_VOICE;
   return {
     voice,
     instructions: buildNegotiatorInstructions(vars),
+    tools: [END_CALL_TOOL],
     turn_detection: {
       type: "server_vad",
-      silence_duration_ms: 700,
+      threshold: 0.85,
+      silence_duration_ms: 900,
     },
-    tools: NEGOTIATOR_TOOLS,
     audio: {
       input: {
         format: { type: "audio/pcm", rate: 24000 },

@@ -6,7 +6,6 @@ import {
   Bed,
   Check,
   CheckCircle,
-  Clock,
   FileText,
   Headphones,
   ListChecks,
@@ -25,25 +24,30 @@ import {
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import { api, toCarProfile } from "./api.js";
-import { HOTELS, PRICE_STEPS, REPLAY_CLIPS, TRANSCRIPT } from "./data.js";
+import { HOTELS, PRICE_STEPS } from "./data.js";
+import { hotelImageFor, hotelTintFor } from "./hotelImage.js";
 import { IosCallView } from "./IosCallView.jsx";
 import { Waveform } from "./Waveform.jsx";
 
 const STEP_META = {
   vehicle: { index: 1, label: "Stay profile", title: "Set up your group stay", description: "Confirm the details hotels need to return comparable group rates." },
-  calling: { index: 2, label: "Top 5 hotels", title: "StayScout is researching the market", description: "Every hotel receives the same verified group-stay request." },
-  quotes: { index: 3, label: "Compare", title: "Five group rates, normalized", description: "Choose an offer and set the private target for the negotiation." },
-  negotiating: { index: 4, label: "Negotiate", title: "Negotiator is working the selected hotel", description: "The target stays private while verified concessions are recorded." },
-  result: { index: 5, label: "Evidence", title: "A better group rate, with the proof", description: "Review the outcome, unchanged stay details, full call, and decisive moments." },
+  calling: { index: 2, label: "Hotels found", title: "Hotels and aggregator prices", description: "Review the properties StayScout found, then choose which ones to call." },
+  agentcalls: { index: 3, label: "Agent quotes", title: "StayScout called the hotels", description: "Every hotel came back under its public aggregator price. Listen to the calls." },
+  quotes: { index: 4, label: "Compare", title: "Negotiated group rates, normalized", description: "Choose an offer and set the private target for the live negotiation." },
+  negotiating: { index: 5, label: "Negotiate", title: "Negotiator is working the selected hotel", description: "The target stays private while verified concessions are recorded." },
+  result: { index: 6, label: "Evidence", title: "A better group rate, with the proof", description: "Review the outcome, unchanged stay details, full call, and decisive moments." },
 };
 
 const NAV_ITEMS = [
   { id: "vehicle", label: "Stay profile", icon: Bed },
-  { id: "calling", label: "Top 5 hotels", icon: MagnifyingGlass },
+  { id: "calling", label: "Hotels found", icon: MagnifyingGlass },
+  { id: "agentcalls", label: "Agent quotes", icon: Headphones },
   { id: "quotes", label: "Compare", icon: ListChecks },
   { id: "negotiating", label: "Negotiate", icon: PhoneCall },
   { id: "result", label: "Evidence", icon: FileText },
 ];
+
+const TOTAL_STEPS = NAV_ITEMS.length;
 
 const CURRENCY = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -157,25 +161,12 @@ function SourceLabel({ type, children }) {
   return <span className={`source-label source-label--${type}`}><Icon size={12} weight={type === "hidden" ? "fill" : "regular"} /> {children}</span>;
 }
 
-function StatusBadge({ status }) {
-  if (status === "Verified") {
-    return <span className="status-badge status-badge--verified"><SealCheck size={14} weight="fill" /> Verified</span>;
-  }
-  if (status === "Calling") {
-    return <span className="status-badge status-badge--active"><SpinnerGap className="spin" size={14} weight="bold" /> Calling</span>;
-  }
-  if (status === "Needs review") {
-    return <span className="status-badge status-badge--review"><WarningCircle size={14} weight="fill" /> Needs review</span>;
-  }
-  return <span className="status-badge status-badge--pending"><Clock size={14} /> {status === "Pending" ? "Pending" : "Queued"}</span>;
-}
-
 function StepHeader({ step }) {
   const meta = STEP_META[step];
   return (
     <header className="demo-header">
       <div>
-        <p className="eyebrow">Step {meta.index} of 5 · {meta.label}</p>
+        <p className="eyebrow">Step {meta.index} of {TOTAL_STEPS} · {meta.label}</p>
         <h2>{meta.title}</h2>
         <p>{meta.description}</p>
       </div>
@@ -312,96 +303,71 @@ function VehicleView({ profile, setProfile, bodyType, setBodyType, driverName, o
   );
 }
 
-// Recorded demo call audio, mapped by row position. Row 1 → $1,485 quote,
-// row 3 → $1,199 quote. The other rows expose the control but have no clip.
-const CALL_AUDIO = ["/assets/quote-1.m4a", null, "/assets/quote-3.m4a", null, null];
-
-function CallAudioPlayer({ src, label }) {
-  const audioRef = useRef(null);
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return undefined;
-    const onTime = () => setProgress(audio.duration ? audio.currentTime / audio.duration : 0);
-    const onEnd = () => {
-      setPlaying(false);
-      setProgress(0);
-    };
-    audio.addEventListener("timeupdate", onTime);
-    audio.addEventListener("ended", onEnd);
-    audio.addEventListener("pause", () => setPlaying(false));
-    return () => {
-      audio.removeEventListener("timeupdate", onTime);
-      audio.removeEventListener("ended", onEnd);
-    };
-  }, []);
-
-  function toggle() {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (audio.paused) {
-      // Only one clip should play at a time across the board.
-      document.querySelectorAll("audio[data-call-audio]").forEach((other) => {
-        if (other !== audio) other.pause();
-      });
-      audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
-    } else {
-      audio.pause();
-      setPlaying(false);
-    }
-  }
-
-  const disabled = !src;
+/** Placeholder hotel photo with a deterministic gradient behind it. */
+function HotelThumb({ name, size = 46 }) {
+  const [loaded, setLoaded] = useState(false);
   return (
-    <div className={disabled ? "call-audio call-audio--empty" : "call-audio"}>
-      <button
-        type="button"
-        className="call-audio-button"
-        onClick={toggle}
-        aria-label={disabled ? `Play ${label} recording (no clip available)` : playing ? `Pause ${label} recording` : `Play ${label} recording`}
-      >
-        {playing ? <Pause size={11} weight="fill" /> : <Play size={11} weight="fill" />}
-      </button>
-      <Waveform active={playing} compact progress={disabled ? 0 : progress} label={disabled ? "No recording available" : `${label} recording waveform`} />
-      {src && <audio ref={audioRef} src={src} preload="none" data-call-audio />}
-    </div>
+    <span
+      className="hotel-thumb"
+      style={{ width: size, height: size, background: hotelTintFor(name) }}
+      aria-hidden="true"
+    >
+      <img
+        src={hotelImageFor(name)}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        style={{ opacity: loaded ? 1 : 0 }}
+      />
+      {!loaded && <i>{name.slice(0, 1)}</i>}
+    </span>
   );
 }
 
-function CallingView({ calls, complete, live, onContinue, locationLabel }) {
+function CallingView({ calls, complete, live, onContinue, locationLabel, selectedHotels, onToggleHotel, busy }) {
   const completedCount = calls.filter((call) => call.status === "Verified").length;
   const total = calls.length || 5;
   const progress = (completedCount / total) * 100;
   const place = locationLabel || "your destination";
+  const chosen = calls.filter((call) => selectedHotels.has(call.quoteId)).length;
 
   return (
     <motion.div className="calling-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
       <section className="call-board" aria-live="polite" aria-busy={!complete}>
         <div className="call-board-head">
-          <div><span className="section-kicker">Querit hotel search &amp; aggregator pricing</span><h3>{complete ? "Individual hotels priced across aggregators" : `${completedCount} of ${total} hotels verified`}</h3><p>StayScout searches Querit for real hotel properties in {place}, then checks Booking, Expedia, Hotels.com, Kayak, and Tripadvisor for nightly rates.</p></div>
+          <div><span className="section-kicker">Querit hotel search &amp; aggregator pricing</span><h3>{complete ? "Individual hotels priced across aggregators" : `${completedCount} of ${total} hotels priced`}</h3><p>StayScout searches Querit for real hotel properties in {place}, then checks Booking, Expedia, Hotels.com, Kayak, and Tripadvisor for nightly rates. Choose the hotels you want StayScout to call.</p></div>
           <span className="live-indicator"><span /> {complete ? "Complete" : "Agent active"}</span>
         </div>
         <div className="progress-track" aria-hidden="true"><motion.span initial={false} animate={{ scaleX: progress / 100 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} /></div>
 
         <div className="call-list">
-          <div className="call-table-head"><span>#</span><span>Hotel</span><span>Rating evidence</span><span>Eligibility</span><span>Call state</span><span>Quote</span></div>
-          {calls.map((call, index) => (
-            <article className={call.status === "Calling" ? "call-row call-row--active" : "call-row"} key={call.id}>
-              <span className="call-order">0{index + 1}</span>
-              <div className="call-provider"><span className="provider-monogram">{call.name.slice(0, 1)}</span><span><strong>{call.name}</strong><small>{place} · individual property</small></span></div>
-              <div className="rating-source"><strong><Star size={13} weight="fill" /> {call.rating ?? "—"}</strong><SourceLabel type="declaration">{call.reviews} reviews</SourceLabel></div>
-              <div className="eligibility-state"><Check size={13} weight="bold" /><span><strong>{place}</strong><small>{live ? "Web-verified" : "Eligible"}</small></span></div>
-              <div className="call-state-cell"><CallAudioPlayer src={CALL_AUDIO[index] ?? null} label={call.name} /><StatusBadge status={call.status} /></div>
-              <span className="call-price">{call.status === "Verified" && call.annual != null ? <><strong>{formatCurrency(call.annual)}</strong><small>{call.aggregators?.length ? call.aggregators.map((agg) => agg.name).slice(0, 2).join(" · ") : "per room / night"}</small></> : call.status === "Calling" ? <><span className="pending-line" /><small>Checking aggregators…</small></> : <><span className="pending-line pending-line--muted" /><small>Queued for Querit</small></>}</span>
-            </article>
-          ))}
+          <div className="call-table-head call-table-head--picker"><span>#</span><span>Hotel</span><span>Rating evidence</span><span>Aggregator rates</span><span>Best nightly</span><span>Call</span></div>
+          {calls.map((call, index) => {
+            const picked = selectedHotels.has(call.quoteId);
+            const priced = call.status === "Verified" && call.annual != null;
+            return (
+              <label className={picked ? "call-row call-row--picked" : "call-row"} key={call.id} style={{ opacity: priced ? 1 : 0.78 }}>
+                <span className="call-order">0{index + 1}</span>
+                <div className="call-provider"><HotelThumb name={call.name} size={64} /><span><strong>{call.name}</strong><small>{place} · {call.roomType || "individual property"}</small></span></div>
+                <div className="rating-source"><strong><Star size={13} weight="fill" /> {call.rating ?? "—"}</strong><SourceLabel type="declaration">{call.reviews} reviews</SourceLabel></div>
+                <div className="aggregator-cell">
+                  {call.aggregators?.length ? call.aggregators.slice(0, 4).map((agg) => (
+                    <span className="aggregator-chip" key={agg.name}><em>{agg.name}</em><strong>{formatCurrency(agg.nightly)}</strong></span>
+                  )) : <small>{priced ? "Market estimate" : "Checking aggregators…"}</small>}
+                </div>
+                <span className="call-price">{priced ? <><strong>{formatCurrency(call.annual)}</strong><small>lowest of {call.aggregators?.length || 1} · per night</small></> : <><span className="pending-line" /><small>Pricing…</small></>}</span>
+                <span className="radio-wrap"><input type="checkbox" name="callHotel" value={call.quoteId} checked={picked} disabled={!priced} onChange={() => onToggleHotel(call.quoteId)} /><i /></span>
+              </label>
+            );
+          })}
         </div>
 
         <div className="call-board-footer">
-          <span><ShieldCheck size={15} /> Dates, rooms, and inclusions locked across all five calls</span>
-          <button className="primary-button" type="button" disabled={!complete} onClick={onContinue}>Review verified rates <ArrowRight size={17} weight="bold" /></button>
+          <span><ShieldCheck size={15} /> Dates, rooms, and inclusions locked across every call</span>
+          <button className="primary-button" type="button" disabled={!complete || chosen === 0 || busy} onClick={onContinue}>
+            {busy ? <><SpinnerGap className="spin" size={16} weight="bold" /> Calling hotels…</> : <>Call {chosen || ""} {chosen === 1 ? "hotel" : "hotels"} <PhoneCall size={17} weight="fill" /></>}
+          </button>
         </div>
       </section>
 
@@ -412,7 +378,7 @@ function CallingView({ calls, complete, live, onContinue, locationLabel }) {
         <ol>
           <li><span className="evidence-index">01</span><span><strong>Stay search</strong>City, room count, class, and dates.</span><SourceLabel type="user">Matched</SourceLabel></li>
           <li><span className="evidence-index">02</span><span><strong>Aggregator rates</strong>Booking, Expedia, Hotels.com, Kayak, Tripadvisor.</span><SourceLabel type="declaration">Querit</SourceLabel></li>
-          <li><span className="evidence-index">03</span><span><strong>Shortlist ready</strong>You choose which hotels to negotiate.</span><SourceLabel type={complete ? "user" : "required"}>{complete ? "Complete" : "Collecting"}</SourceLabel></li>
+          <li><span className="evidence-index">03</span><span><strong>You pick the calls</strong>StayScout only calls the hotels you check.</span><SourceLabel type={chosen > 0 ? "user" : "required"}>{chosen > 0 ? `${chosen} selected` : "Select hotels"}</SourceLabel></li>
         </ol>
         <div className="evidence-policy-note"><FileText size={16} /><span><strong>Evidence standard</strong>Nightly rates prefer aggregator snippets; estimates are labeled when a price cannot be parsed.</span></div>
       </aside>
@@ -420,6 +386,184 @@ function CallingView({ calls, complete, live, onContinue, locationLabel }) {
   );
 }
 
+
+/**
+ * Streams a Grok-generated negotiation recording. The clip is synthesized on
+ * demand (a few seconds), so fetching is deferred until the user hits play.
+ */
+function AgentCallRecording({ url, label }) {
+  const audioRef = useRef(null);
+  const [state, setState] = useState("ready");
+  const [progress, setProgress] = useState(0);
+
+  function toggle() {
+    const audio = audioRef.current;
+    if (!audio || !url) return;
+    if (!audio.paused) {
+      audio.pause();
+      return;
+    }
+    document.querySelectorAll("audio[data-agent-call]").forEach((other) => {
+      if (other !== audio) other.pause();
+    });
+    audio.play().then(() => setState("playing")).catch(() => setState("ready"));
+  }
+
+  return (
+    <div className="agent-recording">
+      <div className="agent-recording-controls">
+        <button
+          type="button"
+          className="call-audio-button"
+          onClick={toggle}
+          disabled={!url}
+          aria-label={state === "playing" ? `Pause ${label} negotiation recording` : `Play ${label} negotiation recording`}
+        >
+          {state === "playing" ? <Pause size={11} weight="fill" /> : <Play size={11} weight="fill" />}
+        </button>
+        <Waveform active={state === "playing"} compact progress={progress} playedColor="#71e0c1" unplayedColor="rgba(213, 226, 221, 0.22)" label={`${label} negotiation waveform`} />
+        <small>{state === "playing" ? "Playing" : url ? "Call recording" : "Recording unavailable"}</small>
+      </div>
+      <audio
+        ref={audioRef}
+        src={url || undefined}
+        preload="auto"
+        data-agent-call
+        onTimeUpdate={(event) => {
+          const audio = event.currentTarget;
+          setProgress(audio.duration ? audio.currentTime / audio.duration : 0);
+        }}
+        onPause={() => setState((current) => (current === "playing" ? "ready" : current))}
+        onEnded={() => { setState("ready"); setProgress(0); }}
+      />
+    </div>
+  );
+}
+
+function AgentCallsLoadingView({ hotels, locationLabel }) {
+  const place = locationLabel || "your destination";
+  return (
+    <motion.div className="agent-calls-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+      <section className="call-board" aria-busy="true" aria-live="polite">
+        <div className="call-board-head">
+          <div>
+            <span className="section-kicker">Calling hotels</span>
+            <h3>StayScout is calling the hotels</h3>
+            <p>Group rates are coming back for {place}. This page opens when every call is finished.</p>
+          </div>
+          <span className="live-indicator"><span /> {hotels.length} {hotels.length === 1 ? "call" : "calls"} in progress</span>
+        </div>
+        <div className="agent-loading-list">
+          {hotels.map((hotel, index) => (
+            <div className="agent-loading-row" key={hotel.quoteId || hotel.id || hotel.name}>
+              <HotelThumb name={hotel.name} size={52} />
+              <div>
+                <strong>{hotel.name}</strong>
+                <small>On the line with group sales</small>
+              </div>
+              <SpinnerGap className="spin" size={18} weight="bold" />
+              <span className="agent-call-index">0{index + 1}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      <aside className="research-evidence">
+        <p className="section-kicker">What is happening</p>
+        <h3>No live hotel call yet</h3>
+        <p>StayScout is asking each hotel for a group rate on the same dates, rooms, and inclusions.</p>
+        <ol>
+          <li><span className="evidence-index">01</span><span><strong>Group rate</strong>Targeted 10–18% under the best aggregator price.</span><SourceLabel type="declaration">In progress</SourceLabel></li>
+          <li><span className="evidence-index">02</span><span><strong>Call recording</strong>Each finished call is saved before this screen advances.</span><SourceLabel type="declaration">Recording</SourceLabel></li>
+        </ol>
+      </aside>
+    </motion.div>
+  );
+}
+
+function AgentCallsView({ agentCalls, locationLabel, onContinue, busy }) {
+  const totalSaved = agentCalls.reduce((sum, call) => sum + (call.totalSaved || 0), 0);
+  const bestPct = agentCalls.reduce((best, call) => Math.max(best, call.savedPct || 0), 0);
+  const place = locationLabel || "your destination";
+
+  return (
+    <motion.div className="agent-calls-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+      <section className="call-board">
+        <div className="call-board-head">
+          <div>
+            <span className="section-kicker">First-round agent calls</span>
+            <h3>StayScout called {agentCalls.length} {agentCalls.length === 1 ? "hotel" : "hotels"} and got quotes</h3>
+            <p>Each hotel was asked for a group rate on identical dates, room counts, and inclusions. Every quote came back below the best public aggregator price.</p>
+          </div>
+          <span className="live-indicator"><span /> {agentCalls.length} calls complete</span>
+        </div>
+
+        <div className="agent-savings-strip">
+          <div><span>Best reduction</span><strong>{bestPct}%</strong><small>under aggregator price</small></div>
+          <div><span>Quotes received</span><strong>{agentCalls.length}</strong><small>of {agentCalls.length} calls placed</small></div>
+          <div><span>Group stay savings</span><strong>{formatCurrency(totalSaved)}</strong><small>across all rooms &amp; nights</small></div>
+        </div>
+
+        <div className="agent-call-list">
+          {agentCalls.map((call, index) => (
+            <article className="agent-call-card" key={call.providerId}>
+              <div className="agent-call-head">
+                <HotelThumb name={call.name} size={60} />
+                <div className="agent-call-title">
+                  <strong>{call.name}</strong>
+                  <small>{place} · {call.roomType || "group block"} · {call.rooms} rooms × {call.nights} nights</small>
+                </div>
+                <span className="status-badge status-badge--verified"><SealCheck size={14} weight="fill" /> Quote received</span>
+              </div>
+
+              <div className="agent-price-compare">
+                <div className="agent-price-col">
+                  <span>Best aggregator</span>
+                  <strong className="old-price">{formatCurrency(call.aggregatorLow)}</strong>
+                  <small>{call.aggregatorName}</small>
+                </div>
+                <ArrowRight className="outcome-arrow" size={22} weight="bold" />
+                <div className="agent-price-col agent-price-col--final">
+                  <span>Agent-negotiated quote</span>
+                  <strong>{formatCurrency(call.agentQuote)}</strong>
+                  <small>per room / night</small>
+                </div>
+                <div className="agent-price-col agent-price-col--saved">
+                  <span>Reduction</span>
+                  <strong>{call.savedPct}%</strong>
+                  <em>−{formatCurrency(call.saved)} / night</em>
+                  <small><CheckCircle size={13} weight="fill" /> {formatCurrency(call.totalSaved)} group total</small>
+                </div>
+              </div>
+
+              <div className="agent-call-footer">
+                <span className="agent-concession"><Check size={13} weight="bold" /> {call.concession}</span>
+                <AgentCallRecording url={call.recordingUrl} label={call.name} />
+              </div>
+              <span className="agent-call-index">0{index + 1}</span>
+            </article>
+          ))}
+        </div>
+
+        <div className="call-board-footer">
+          <span><LockKey size={15} weight="fill" /> Your private target was never mentioned on these calls</span>
+          <button className="primary-button" type="button" onClick={onContinue} disabled={busy}>Compare &amp; pick a hotel <ArrowRight size={17} weight="bold" /></button>
+        </div>
+      </section>
+
+      <aside className="research-evidence">
+        <p className="section-kicker">How these quotes were reached</p>
+        <h3>First round, no target disclosed</h3>
+        <p>StayScout opened with the public aggregator rate, confirmed the block size, and asked for a group tier.</p>
+        <ol>
+          <li><span className="evidence-index">01</span><span><strong>Anchored on public price</strong>The aggregator rate opened every call.</span><SourceLabel type="declaration">Querit</SourceLabel></li>
+          <li><span className="evidence-index">02</span><span><strong>Block size leverage</strong>{agentCalls[0]?.rooms ?? 24} rooms across {agentCalls[0]?.nights ?? 3} nights.</span><SourceLabel type="user">Confirmed</SourceLabel></li>
+          <li><span className="evidence-index">03</span><span><strong>Ceiling stayed hidden</strong>No target or budget was shared.</span><SourceLabel type="hidden">Private</SourceLabel></li>
+        </ol>
+        <div className="evidence-policy-note"><WarningCircle size={16} /><span><strong>Next step</strong>Pick a hotel and StayScout will negotiate the rate live.</span></div>
+      </aside>
+    </motion.div>
+  );
+}
 
 function roomTypeLabel(quote) {
   if (typeof quote?.roomType === "string" && quote.roomType.trim()) return quote.roomType;
@@ -431,9 +575,7 @@ function roomTypeLabel(quote) {
 
 function QuotesView({
   quotes,
-  recommendedId,
-  selectedHotels,
-  setSelectedHotels,
+  agentCalls,
   selectedProvider,
   setSelectedProvider,
   target,
@@ -444,58 +586,34 @@ function QuotesView({
   busy,
   error,
 }) {
-  const shortlisted = quotes.filter((quote) => selectedHotels.has(quote.id));
-  const selectedQuote =
-    shortlisted.find((quote) => quote.id === selectedProvider) ??
-    shortlisted.find((quote) => quote.recommended) ??
-    shortlisted[0] ??
-    quotes[0];
-  const recommended = quotes.find((quote) => quote.id === recommendedId);
-
-  function toggleHotel(quoteId) {
-    setSelectedHotels((current) => {
-      const next = new Set(current);
-      const removing = next.has(quoteId);
-      if (removing) next.delete(quoteId);
-      else next.add(quoteId);
-
-      setSelectedProvider((primary) => {
-        if (!removing) return primary ?? quoteId;
-        if (primary !== quoteId && next.has(primary)) return primary;
-        return next.values().next().value ?? null;
-      });
-
-      return next;
-    });
-  }
+  // Only hotels that returned an agent quote are selectable here.
+  const rows = agentCalls;
+  const selectedCall = rows.find((call) => call.quoteId === selectedProvider) ?? rows[0];
+  const best = rows.reduce((lowest, call) => (!lowest || call.agentQuote < lowest.agentQuote ? call : lowest), null);
 
   return (
     <motion.div className="quotes-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
       <section className="quote-comparison">
         <div className="comparison-head">
-          <div><span className="section-kicker">Querit hotel + aggregator rates</span><h3>Select hotels to negotiate with</h3><p>Rates were pulled from major travel aggregators for your stay params. Check every hotel you want on the shortlist, then pick which one to call first.</p></div>
+          <div><span className="section-kicker">Agent-negotiated group rates</span><h3>Pick the hotel to negotiate live</h3><p>These are the quotes StayScout brought back from the first-round calls. Choose one and set a private target — the negotiator will then call it live.</p></div>
           <details className="evidence-drawer">
-            <summary><FileText size={15} /> Evidence index <span>{quotes.length * 4}</span></summary>
-            <div><strong>Rate evidence</strong><p>Querit hotel discovery plus Booking, Expedia, Hotels.com, Kayak, and Tripadvisor price snippets when available.</p></div>
+            <summary><FileText size={15} /> Evidence index <span>{rows.length * 4}</span></summary>
+            <div><strong>Rate evidence</strong><p>Querit hotel discovery, aggregator price snippets, and the first-round agent call for each hotel.</p></div>
           </details>
         </div>
-        {recommended && <div className="recommendation-strip"><span><SealCheck size={16} weight="fill" /></span><div><strong>System recommendation</strong><p>{recommended.name} has the strongest verified value: lowest matched nightly rate of {formatCurrency(recommended.annual)}, {roomTypeLabel(recommended)}, and aggregator-backed evidence.</p></div><small>Recommendation only · you decide</small></div>}
-        <div className="quote-table" role="group" aria-label="Hotel group rates">
-          <div className="quote-table-head"><span>Hotel</span><span>Aggregators</span><span>Nightly rate</span><span>Room type</span><span>Negotiate</span><span>Shortlist</span></div>
-          {quotes.map((hotel) => {
-            const shortlistedHotel = selectedHotels.has(hotel.id);
-            const primary = selectedProvider === hotel.id;
-            const aggregatorLabel = (hotel.aggregators?.length
-              ? hotel.aggregators.map((agg) => `${agg.name} ${formatCurrency(agg.nightly)}`).join(" · ")
-              : "Market estimate");
+        {best && <div className="recommendation-strip"><span><SealCheck size={16} weight="fill" /></span><div><strong>System recommendation</strong><p>{best.name} has the strongest negotiated value: {formatCurrency(best.agentQuote)} per night, {best.savedPct}% under its best aggregator price, with {best.concession.toLowerCase()}.</p></div><small>Recommendation only · you decide</small></div>}
+        <div className="quote-table" role="group" aria-label="Negotiated hotel group rates">
+          <div className="quote-table-head quote-table-head--agent"><span>Hotel</span><span>Aggregator</span><span>Agent quote</span><span>Saved</span><span>Negotiate live</span></div>
+          {rows.map((call) => {
+            const primary = (selectedCall?.quoteId ?? null) === call.quoteId;
+            const quote = quotes.find((item) => item.id === call.quoteId);
             return (
-              <label className={shortlistedHotel ? (primary ? "quote-row quote-row--selected" : "quote-row") : "quote-row"} key={hotel.id} style={{ opacity: shortlistedHotel ? 1 : 0.72 }}>
-                <span className="quote-provider"><span className="provider-monogram">{hotel.name.slice(0, 1)}</span><span><strong>{hotel.name}</strong><small><Star size={12} weight="fill" /> {hotel.rating ?? "—"} · {hotel.reviews} reviews</small></span>{hotel.recommended && <em>Recommended</em>}</span>
-                <span className="coverage-match"><strong><Check size={13} weight="bold" /> Live search</strong><small style={{ display: "block", maxWidth: 180, whiteSpace: "normal" }}>{aggregatorLabel}</small></span>
-                <span className="quote-amount"><strong>{formatCurrency(hotel.annual)}</strong><small>per room / night</small></span>
-                <span className="deductible-cell"><strong>{roomTypeLabel(hotel)}</strong><small>room category</small></span>
-                <span className="radio-wrap"><input type="radio" name="primaryHotel" value={hotel.id} checked={primary} disabled={!shortlistedHotel} onChange={() => { setSelectedHotels((current) => new Set(current).add(hotel.id)); setSelectedProvider(hotel.id); }} /><i /></span>
-                <span className="radio-wrap"><input type="checkbox" name="shortlistHotel" value={hotel.id} checked={shortlistedHotel} onChange={() => toggleHotel(hotel.id)} /><i /></span>
+              <label className={primary ? "quote-row quote-row--selected" : "quote-row"} key={call.quoteId}>
+                <span className="quote-provider"><HotelThumb name={call.name} size={52} /><span><strong>{call.name}</strong><small><Star size={12} weight="fill" /> {quote?.rating ?? "—"} · {roomTypeLabel(quote ?? { roomType: call.roomType })}</small></span>{best?.quoteId === call.quoteId && <em>Best rate</em>}</span>
+                <span className="coverage-match"><strong className="old-price">{formatCurrency(call.aggregatorLow)}</strong><small style={{ display: "block" }}>{call.aggregatorName}</small></span>
+                <span className="quote-amount"><strong>{formatCurrency(call.agentQuote)}</strong><small>per room / night</small></span>
+                <span className="deductible-cell"><strong>{call.savedPct}%</strong><small>−{formatCurrency(call.saved)} / night</small></span>
+                <span className="radio-wrap"><input type="radio" name="primaryHotel" value={call.quoteId} checked={primary} onChange={() => setSelectedProvider(call.quoteId)} /><i /></span>
               </label>
             );
           })}
@@ -504,8 +622,8 @@ function QuotesView({
 
       <aside className="target-panel">
         <div className="target-panel-head"><Target size={20} weight="fill" /><span><p className="section-kicker">Private negotiation goal</p><h3>Set your target</h3></span></div>
-        <div className="selection-context"><span>Calling first</span><strong>{selectedQuote?.name ?? "Select a hotel"}</strong><small>{shortlisted.length} hotel{shortlisted.length === 1 ? "" : "s"} shortlisted · {formatCurrency(selectedQuote?.annual)} / night</small></div>
-        <p>StayScout will negotiate the selected hotel without disclosing your ceiling. Other shortlisted hotels stay available for a follow-up call.</p>
+        <div className="selection-context"><span>Negotiating with</span><strong>{selectedCall?.name ?? "Select a hotel"}</strong><small>Agent quote {formatCurrency(selectedCall?.agentQuote)} / night · {selectedCall?.savedPct ?? 0}% already saved</small></div>
+        <p>StayScout will push below the first-round quote without disclosing your ceiling. The other quotes stay available as leverage.</p>
         <label className="target-input"><span>$</span><input name="targetNightlyRate" aria-label="Target nightly room rate" value={target} onChange={(event) => setTarget(event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoComplete="off" /><small>/ night</small></label>
         <div className="range-presets">
           {presets.map((amount) => <button className={Number(target) === amount ? "preset preset--active" : "preset"} type="button" key={amount} onClick={() => setTarget(String(amount))}>${amount.toLocaleString()}</button>)}
@@ -513,7 +631,7 @@ function QuotesView({
         <div className="privacy-confirm"><SourceLabel type="hidden">Hidden from hotel</SourceLabel><span>Only the negotiator uses this threshold.</span></div>
         {liveAvailable && <p className="disclosure" style={{ margin: "4px 0 0" }}>StayScout will place an in-app voice call so you can negotiate live with hotel sales.</p>}
         {error && <div className="disclosure-rule" role="alert" style={{ borderColor: "var(--coral)", color: "var(--coral)" }}><WarningCircle size={16} weight="fill" /><span>{error}</span></div>}
-        <button className="primary-button primary-button--wide" type="button" onClick={onNegotiate} disabled={busy || shortlisted.length === 0 || !selectedQuote}>{busy ? <><SpinnerGap className="spin" size={17} weight="bold" /> Starting…</> : liveAvailable ? <>Call me &amp; negotiate <PhoneCall size={17} weight="fill" /></> : <>Negotiate selected rate <PhoneCall size={17} weight="fill" /></>}</button>
+        <button className="primary-button primary-button--wide" type="button" onClick={onNegotiate} disabled={busy || !selectedCall}>{busy ? <><SpinnerGap className="spin" size={17} weight="bold" /> Starting…</> : liveAvailable ? <>Call me &amp; negotiate <PhoneCall size={17} weight="fill" /></> : <>Negotiate selected rate <PhoneCall size={17} weight="fill" /></>}</button>
       </aside>
     </motion.div>
   );
@@ -562,10 +680,16 @@ function NegotiatingView({ steps, priceIndex, target, providerName }) {
   );
 }
 
-function ResultView({ negotiation, playing, audioProgress, activeClip, replayClips, onToggleAudio, onClip, onRestart }) {
-  const { original, final, savings, savingsPct, targetMet, providerName, steps, target } = negotiation;
-  const transcript = negotiation.transcript?.length ? negotiation.transcript : TRANSCRIPT;
-  const clips = replayClips.length ? replayClips : REPLAY_CLIPS;
+function ResultView({ negotiation, stay, playing, audioProgress, activeClip, replayClips, onToggleAudio, onClip, onRestart }) {
+  const { original, final, savings, savingsPct, targetMet, providerName, steps, target, transcript = [] } = negotiation;
+  const rateMoved = Number(final) < Number(original);
+  const lastLine = transcript[transcript.length - 1];
+  const stayRows = [
+    ["Destination", stay.location, stay.location],
+    ["Dates", stay.dates, stay.dates],
+    ["Rooms", stay.rooms, stay.rooms],
+    ["Room type", stay.roomType, stay.roomType],
+  ];
 
   return (
     <motion.div className="result-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
@@ -573,82 +697,73 @@ function ResultView({ negotiation, playing, audioProgress, activeClip, replayCli
         <section className="outcome-summary" aria-label="Negotiation outcome">
           <div className="outcome-column"><span>Original group rate</span><strong className="old-price">{formatCurrency(original)}</strong><small>{providerName} · per room / night</small></div>
           <ArrowRight className="outcome-arrow" size={26} weight="bold" />
-          <div className="outcome-column outcome-column--final"><span>Final negotiated rate</span><strong>{formatCurrency(final)}</strong><small>Transcript evidence · 06:11</small></div>
-          <div className="savings-column"><span>Group stay savings</span><strong>{formatCurrency(savings)}</strong><em>{savingsPct}%</em><small><CheckCircle size={14} weight="fill" /> {targetMet ? `Target under ${formatCurrency(target)} achieved` : `Best achievable near ${formatCurrency(target)}`}</small></div>
+          <div className="outcome-column outcome-column--final"><span>{rateMoved ? "Final negotiated rate" : "Rate after the call"}</span><strong>{formatCurrency(final)}</strong><small>{lastLine?.time ? `Call · ${lastLine.time}` : "From this call"}</small></div>
+          <div className="savings-column"><span>Group stay savings</span><strong>{formatCurrency(savings)}</strong><em>{savingsPct}%</em><small><CheckCircle size={14} weight="fill" /> {rateMoved ? (targetMet ? `Target under ${formatCurrency(target)} achieved` : `Best rate from this call`) : "No price change on this call"}</small></div>
         </section>
 
         <section className="concession-trail">
-          <div className="section-title-row"><div><span className="section-kicker">Before and after</span><h3>Concession trail</h3></div><SourceLabel type="declaration">Transcript-backed</SourceLabel></div>
+          <div className="section-title-row"><div><span className="section-kicker">Before and after</span><h3>What happened on the call</h3></div><SourceLabel type="declaration">From this call</SourceLabel></div>
           <div className="price-timeline">
             {steps.map((step, index) => (
-              <div className={index === steps.length - 1 ? "timeline-stop timeline-stop--final" : "timeline-stop"} key={step.time}>
-                <div className="timeline-meta"><span>{index === 0 ? "Original" : index === steps.length - 1 ? "Final" : `Counter ${index}`}</span><time>{step.time}</time></div>
+              <div className={index === steps.length - 1 ? "timeline-stop timeline-stop--final" : "timeline-stop"} key={`${step.time}-${step.label}-${step.price}`}>
+                <div className="timeline-meta"><span>{index === 0 ? "Original" : index === steps.length - 1 ? "Final" : `Update ${index}`}</span><time>{step.time}</time></div>
                 <strong>{formatCurrency(step.price)}</strong>
                 <span className="timeline-action">{step.label}</span>
-                <small className="timeline-impact">{step.impact ? `${formatCurrency(step.impact)} / room / night` : "Baseline recorded"}</small>
+                <small className="timeline-impact">{step.impact ? `${formatCurrency(step.impact)} / room / night` : "Opening rate"}</small>
               </div>
             ))}
           </div>
         </section>
 
         <section className="coverage-proof" id="evidence">
-          <div className="section-title-row"><div><span className="section-kicker">Stay details and evidence</span><h3>Rate changed. Your stay did not.</h3></div><span className="coverage-status"><ShieldCheck size={16} weight="fill" /> Stay package unchanged</span></div>
+          <div className="section-title-row"><div><span className="section-kicker">Stay details</span><h3>{rateMoved ? "Rate changed. Your stay did not." : "Nightly rate unchanged. Your stay did not."}</h3></div><span className="coverage-status"><ShieldCheck size={16} weight="fill" /> Stay package unchanged</span></div>
           <div className="coverage-table">
             <div className="coverage-row coverage-row--head"><span>Stay detail</span><span>Before</span><span>After</span><span>Status</span></div>
-            {[
-              ["Breakfast", "Included daily", "Included daily"],
-              ["Pool & gym", "Included", "Included"],
-              ["Wi-Fi", "Included", "Included"],
-              ["Cancellation", "14-day flexible", "14-day flexible"],
-            ].map((row) => <div className="coverage-row" key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><span>{row[2]}</span><span><SealCheck size={14} weight="fill" /> Verified</span></div>)}
+            {stayRows.map((row) => <div className="coverage-row" key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><span>{row[2]}</span><span><SealCheck size={14} weight="fill" /> Unchanged</span></div>)}
           </div>
         </section>
 
         <section className="selection-proof">
-          <div><span>Your selection</span><strong>{providerName} · {formatCurrency(final)}/room/night</strong><small><CheckCircle size={14} weight="fill" /> Selected by you</small></div>
-          <div><span>StayScout recommendation</span><strong>{providerName} · Best overall value</strong><small><SealCheck size={14} weight="fill" /> Recommendation matched</small></div>
+          <div><span>Hotel on this call</span><strong>{providerName} · {formatCurrency(final)}/room/night</strong><small><CheckCircle size={14} weight="fill" /> Selected by you</small></div>
+          <div><span>Outcome</span><strong>{rateMoved ? `${formatCurrency(savings)} saved vs opening rate` : "Opened and closed at the same rate"}</strong><small><SealCheck size={14} weight="fill" /> From the live call</small></div>
           <button className="secondary-button" type="button" onClick={onRestart}><ArrowCounterClockwise size={17} weight="bold" /> Replay demo</button>
         </section>
       </div>
 
       <aside className="voice-proof">
-        <header><div className="voice-title"><span className="voice-shield"><ShieldCheck size={21} weight="fill" /></span><div><strong>StayScout Negotiator</strong><small>Call evidence · STAY-CALL-0198</small></div></div><span className="voice-call-state"><CheckCircle size={13} weight="fill" /> Complete</span></header>
-        {negotiation.recordingUrl ? (
-          <RecordingPlayer url={negotiation.recordingUrl} />
-        ) : (
-          <div className="audio-player">
-            <div className="audio-label"><span>Full negotiation audio</span><small>06:42</small></div>
-            <Waveform active={playing} progress={audioProgress} />
-            <div className="audio-controls">
-              <button type="button" onClick={onToggleAudio} aria-label={playing ? "Pause negotiation audio" : "Play negotiation audio"}>{playing ? <Pause size={18} weight="fill" /> : <Play size={18} weight="fill" />}</button>
-              <div className="audio-progress"><span style={{ transform: `scaleX(${audioProgress})` }} /><i style={{ left: `${audioProgress * 100}%` }} /></div>
-              <span>{String(Math.floor(audioProgress * 6)).padStart(2, "0")}:{String(Math.floor((audioProgress * 402) % 60)).padStart(2, "0")}</span>
-            </div>
-          </div>
-        )}
+        <header><div className="voice-title"><span className="voice-shield"><ShieldCheck size={21} weight="fill" /></span><div><strong>StayScout Negotiator</strong><small>{providerName} · live call</small></div></div><span className="voice-call-state"><CheckCircle size={13} weight="fill" /> Complete</span></header>
+        {negotiation.recordingUrl && <RecordingPlayer url={negotiation.recordingUrl} />}
         {negotiation.callSummary && (
           <div className="transcript-panel">
-            <div className="voice-section-title"><span>Call summary</span><small><FileText size={13} weight="fill" /> Analyzed</small></div>
+            <div className="voice-section-title"><span>Call summary</span><small><FileText size={13} weight="fill" /> From this call</small></div>
             <p style={{ display: "block", margin: "10px 0 0", color: "#bdccc8", fontSize: 11, lineHeight: 1.65 }}>{negotiation.callSummary}</p>
           </div>
         )}
-
         <div className="transcript-panel">
-          <div className="voice-section-title"><span>Transcript excerpt</span><small><FileText size={13} weight="fill" /> Synchronized</small></div>
-          {transcript.map((line, index) => <p key={`${line.time}-${index}`}><time>{line.time}</time><span><strong>{line.speaker}:</strong> {line.text}</span></p>)}
+          <div className="voice-section-title"><span>Call</span><small>{transcript.length ? `${transcript.length} turns` : "No speech captured"}</small></div>
+          {transcript.length ? transcript.map((line, index) => (
+            <p key={`${line.time}-${index}`}>
+              <time>{line.time}</time>
+              <span><strong>{line.speaker}:</strong> {line.text}</span>
+            </p>
+          )) : (
+            <p style={{ display: "block", margin: "10px 0 0", color: "#bdccc8", fontSize: 11, lineHeight: 1.65 }}>No lines were captured from this call.</p>
+          )}
         </div>
 
-        <div className="replay-panel">
-          <div className="voice-section-title"><span>Good negotiation replay</span><small>Key moments that moved the price</small></div>
-          {clips.map((clip) => (
-            <button className={activeClip === clip.id ? "replay-clip replay-clip--active" : "replay-clip"} type="button" key={clip.id} onClick={() => onClip(clip)}>
-              <span className="replay-play"><Play size={15} weight="fill" /></span>
-              <time>{clip.time}</time>
-              <span><strong>{clip.title}</strong><small>{clip.detail}</small></span>
-              <em>{clip.impact}/night</em>
-            </button>
-          ))}
-        </div>
+        {replayClips.length > 0 && (
+          <div className="replay-panel">
+            <div className="voice-section-title"><span>Price moves</span><small>Rates named on the call</small></div>
+            {replayClips.map((clip) => (
+              <button className={activeClip === clip.id ? "replay-clip replay-clip--active" : "replay-clip"} type="button" key={clip.id} onClick={() => onClip(clip)}>
+                <span className="replay-play"><Play size={15} weight="fill" /></span>
+                <time>{clip.time}</time>
+                <span><strong>{clip.title}</strong><small>{clip.detail}</small></span>
+                <em>{clip.impact}/night</em>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="voice-privacy"><LockKey size={19} weight="fill" /><span><strong>Private target protected</strong>Your target stayed private throughout the call.</span></div>
       </aside>
@@ -703,6 +818,7 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
   const [bodyType, setBodyType] = useState("Deluxe");
   const [research, setResearch] = useState(null);
   const [quotesData, setQuotesData] = useState(null);
+  const [agentCalls, setAgentCalls] = useState([]);
   const [calls, setCalls] = useState([]);
   const [callsComplete, setCallsComplete] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
@@ -723,21 +839,23 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
   const quotes = quotesData?.items ?? [];
   const recommendedId = quotesData?.recommendedQuoteId ?? null;
 
+  // Presets sit under the first-round agent quote once the calls have run.
   const presets = useMemo(() => {
+    const selectedCall = agentCalls.find((call) => call.quoteId === selectedProvider) ?? agentCalls[0];
     const rec = quotes.find((quote) => quote.id === recommendedId) ?? quotes[0];
-    const base = rec?.annual ?? HOTELS[0]?.nightly ?? PRICE_STEPS[0]?.price ?? 248;
-    return [base - 150, base - 100, base - 50].map((value) => Math.max(0, Math.round(value / 10) * 10));
-  }, [quotes, recommendedId]);
+    const base = selectedCall?.agentQuote ?? rec?.annual ?? HOTELS[0]?.nightly ?? PRICE_STEPS[0]?.price ?? 248;
+    return [base * 0.94, base * 0.88, base * 0.82].map((value) => Math.max(0, Math.round(value / 5) * 5));
+  }, [agentCalls, selectedProvider, quotes, recommendedId]);
 
   const replayClips = useMemo(() => {
-    if (!negotiation) return [];
+    if (!negotiation?.steps) return [];
     return negotiation.steps.slice(1).map((step, index) => ({
       id: `clip-${index}`,
       time: step.time,
       title: step.label,
-      detail: index === 0 ? "Presented a stay-matched competing group rate." : index === 1 ? "Confirmed breakfast package and amenity match." : "Asked for a final discretionary reduction to reach target.",
+      detail: `${formatCurrency(step.price)} per room / night`,
       impact: step.impact ?? 0,
-      speech: `${step.label}. The verified nightly group rate is now ${formatCurrency(step.price)} with unchanged stay details.`,
+      speech: step.label,
     }));
   }, [negotiation]);
 
@@ -752,13 +870,16 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
     if (step !== "calling" || !research || !quotesData) return undefined;
     const amount = new Map(quotesData.items.map((item) => [item.providerId, item.annual]));
     const recommended = new Map(quotesData.items.map((item) => [item.providerId, item.recommended]));
+    const quoteIdByProvider = new Map(quotesData.items.map((item) => [item.providerId, item.id]));
     const nightlyById = new Map(research.providers.map((provider) => [provider.id, provider.nightly]));
     setCalls(research.providers.map((provider) => ({
       id: provider.id,
+      // Selection is tracked by quote id because that is what the API expects.
+      quoteId: quoteIdByProvider.get(provider.id) ?? provider.id,
       name: provider.name,
       rating: provider.rating,
       reviews: provider.reviews,
-      deductible: provider.roomType ?? 500,
+      roomType: provider.roomType,
       status: "Queued",
       annual: null,
       aggregators: provider.aggregators ?? [],
@@ -806,7 +927,10 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
         if (!active) return;
         const next = res.snapshot.negotiation;
         if (next) setNegotiation(next);
-        if (next?.callStatus === "completed") { setCallContext(null); setStep("result"); return; }
+        if (next?.callStatus === "completed") {
+          goToDashboard(next);
+          return;
+        }
         if (next?.callStatus === "failed") return;
         timer = window.setTimeout(poll, 3500);
       } catch {
@@ -828,12 +952,13 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
     window.requestAnimationFrame(() => ref?.current?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" }));
   }, [step, ref]);
 
-  const currentStepIndex = STEP_META[step].index;
+  const viewStep = step === "agentloading" ? "agentcalls" : step;
+  const currentStepIndex = STEP_META[viewStep].index;
   const completedNav = useMemo(() => new Set(NAV_ITEMS.filter((item) => STEP_META[item.id].index < currentStepIndex).map((item) => item.id)), [currentStepIndex]);
 
   function getNavState(item) {
     const itemIndex = STEP_META[item.id].index;
-    if (item.id === step) return { key: "current", label: (step === "calling" && callsComplete) || step === "result" ? "Complete" : "In progress" };
+    if (item.id === viewStep) return { key: "current", label: step === "agentloading" ? "Calling hotels" : (viewStep === "calling" && callsComplete) || viewStep === "result" ? "Complete" : "In progress" };
     if (completedNav.has(item.id)) return { key: "complete", label: "Complete" };
     if (itemIndex === currentStepIndex + 1) {
       if (step === "calling" && !callsComplete) return { key: "pending", label: "Pending" };
@@ -852,6 +977,7 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
     setCallsComplete(false);
     setResearch(null);
     setQuotesData(null);
+    setAgentCalls([]);
     setCalls([]);
     try {
       const payload = toCarProfile(profile, bodyType);
@@ -864,8 +990,6 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
       const recommendedQuoteId = quotesRes.snapshot.quotes?.recommendedQuoteId ?? items[0]?.id ?? null;
       setSelectedProvider(recommendedQuoteId);
       setSelectedHotels(new Set(items.map((item) => item.id)));
-      const rec = items.find((item) => item.recommended) ?? items[0];
-      if (rec?.annual) setTarget(String(Math.max(0, Math.round((rec.annual - 40) / 10) * 10)));
     } catch (cause) {
       setError(cause.message || "Research failed");
       setStep("vehicle");
@@ -874,10 +998,43 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
     }
   }
 
+  function toggleCallHotel(quoteId) {
+    setSelectedHotels((current) => {
+      const next = new Set(current);
+      if (next.has(quoteId)) next.delete(quoteId);
+      else next.add(quoteId);
+      return next;
+    });
+  }
+
+  /** Places the simulated first-round calls for the hotels the user checked. */
+  async function startAgentCalls() {
+    setError(null);
+    setBusy(true);
+    setStep("agentloading");
+    try {
+      const res = await api.agentCalls([...selectedHotels]);
+      const calls = res.snapshot.agentCalls ?? [];
+      setAgentCalls(calls);
+      const best = calls[0];
+      setSelectedProvider(best?.quoteId ?? null);
+      // Seed the private target just under the best first-round quote.
+      if (best?.agentQuote) {
+        setTarget(String(Math.max(0, Math.round((best.agentQuote * 0.9) / 5) * 5)));
+      }
+      setStep("agentcalls");
+    } catch (cause) {
+      setError(cause.message || "The agent calls could not be completed.");
+      setStep("calling");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function startNegotiation() {
     setError(null);
-    if (!selectedHotels.has(selectedProvider)) {
-      setError("Select at least one hotel to negotiate with.");
+    if (!selectedProvider) {
+      setError("Select a hotel to negotiate with.");
       return;
     }
     setBusy(true);
@@ -909,7 +1066,13 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
     }
   }
 
-  async function handleCallEnded(conversationId) {
+  function goToDashboard(nextNegotiation) {
+    setCallContext(null);
+    if (nextNegotiation) setNegotiation(nextNegotiation);
+    setStep("result");
+  }
+
+  function handleCallEnded(conversationId, snapshot, options = {}) {
     if (!conversationId) {
       // Declined before connecting — return to the quotes step.
       setCallContext(null);
@@ -917,18 +1080,13 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
       setStep("quotes");
       return;
     }
-    // IosCallView already posts the transcript to /complete; refresh snapshot so
-    // the poller (or this path) can advance to the result screen.
-    try {
-      const res = await api.pollNegotiation();
-      if (res.snapshot.negotiation) setNegotiation(res.snapshot.negotiation);
-      if (res.snapshot.negotiation?.callStatus === "completed") {
-        setCallContext(null);
-        setStep("result");
-      }
-    } catch {
-      // The poll effect keeps retrying.
+    setCallContext(null);
+    if (snapshot?.negotiation) {
+      goToDashboard(snapshot.negotiation);
+      return;
     }
+    if (options.pending) return;
+    goToDashboard(negotiation);
   }
 
   function handleCallError(message) {
@@ -981,6 +1139,7 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
     setStep("vehicle");
     setResearch(null);
     setQuotesData(null);
+    setAgentCalls([]);
     setCalls([]);
     setCallsComplete(false);
     setSelectedProvider(null);
@@ -1007,7 +1166,7 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
           <nav aria-label="Demo journey">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const active = item.id === step;
+              const active = item.id === viewStep;
               const complete = completedNav.has(item.id);
               const navState = getNavState(item);
               return (
@@ -1023,20 +1182,22 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
         </aside>
 
         <div className="demo-workspace">
-          <div className="mobile-demo-bar"><div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>StayScout</span></div><span>Step {currentStepIndex} / 5</span></div>
+          <div className="mobile-demo-bar"><div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>StayScout</span></div><span>Step {currentStepIndex} / {TOTAL_STEPS}</span></div>
           <div className="demo-topbar"><div className="topbar-breadcrumb"><span>Group bookings</span><ArrowRight size={12} /><strong>Request STAY-8K42</strong></div><div className="global-verification"><SealCheck size={16} weight="fill" /><span><strong>{account ? "Request verified" : "Sign up to begin"}</strong><small>{account ? "12 facts · 2 sources" : "No account yet"}</small></span></div></div>
           <div className="demo-content">
-            <StepHeader step={step} />
-            <div className="sr-only" aria-live="polite">Step {currentStepIndex} of 5. {STEP_META[step].title}</div>
+            <StepHeader step={viewStep} />
+            <div className="sr-only" aria-live="polite">Step {currentStepIndex} of {TOTAL_STEPS}. {STEP_META[viewStep].title}</div>
             <AnimatePresence mode="wait">
               {!account && <SignupGate key="gate" onRequireSignup={onRequireSignup} />}
               {account && step === "vehicle" && <VehicleView key="vehicle" profile={profile} setProfile={setProfile} bodyType={bodyType} setBodyType={setBodyType} driverName={driverName} onStart={startResearch} busy={busy} error={error} />}
-              {account && step === "calling" && <CallingView key="calling" calls={calls} complete={callsComplete} live={research?.live ?? false} locationLabel={profile.location || profile.make || "Destination"} onContinue={() => setStep("quotes")} />}
-              {account && step === "quotes" && <QuotesView key="quotes" quotes={quotes} recommendedId={recommendedId} selectedHotels={selectedHotels} setSelectedHotels={setSelectedHotels} selectedProvider={selectedProvider} setSelectedProvider={setSelectedProvider} target={target} setTarget={setTarget} presets={presets} liveAvailable={liveAvailable} onNegotiate={startNegotiation} busy={busy} error={error} />}
+              {account && step === "calling" && <CallingView key="calling" calls={calls} complete={callsComplete} live={research?.live ?? false} locationLabel={profile.location || profile.make || "Destination"} selectedHotels={selectedHotels} onToggleHotel={toggleCallHotel} onContinue={startAgentCalls} busy={busy} />}
+              {account && step === "agentloading" && <AgentCallsLoadingView key="agentloading" hotels={calls.filter((call) => selectedHotels.has(call.quoteId))} locationLabel={profile.location || profile.make || "Destination"} />}
+              {account && step === "agentcalls" && <AgentCallsView key="agentcalls" agentCalls={agentCalls} locationLabel={profile.location || profile.make || "Destination"} onContinue={() => setStep("quotes")} busy={busy} />}
+              {account && step === "quotes" && <QuotesView key="quotes" quotes={quotes} agentCalls={agentCalls} selectedProvider={selectedProvider} setSelectedProvider={setSelectedProvider} target={target} setTarget={setTarget} presets={presets} liveAvailable={liveAvailable} onNegotiate={startNegotiation} busy={busy} error={error} />}
               {account && step === "negotiating" && negotiation && (negotiation.mode === "live"
                 ? <LiveNegotiationPanel key="live-panel" negotiation={negotiation} />
                 : <NegotiatingView key="negotiating" steps={negotiation.steps} priceIndex={priceIndex} target={target} providerName={negotiation.providerName} />)}
-              {account && step === "result" && negotiation && <ResultView key="result" negotiation={negotiation} playing={playing} audioProgress={audioProgress} activeClip={activeClip} replayClips={replayClips} onToggleAudio={toggleAudio} onClip={playClip} onRestart={restartDemo} />}
+              {account && step === "result" && negotiation && <ResultView key="result" negotiation={negotiation} stay={{ location: profile.location || profile.make || "Destination", dates: profile.dates || "Dates TBD", rooms: `${profile.rooms || profile.mileage || "—"} rooms`, roomType: bodyType || profile.model || "Standard" }} playing={playing} audioProgress={audioProgress} activeClip={activeClip} replayClips={replayClips} onToggleAudio={toggleAudio} onClip={playClip} onRestart={restartDemo} />}
             </AnimatePresence>
           </div>
           <footer className="demo-footer"><span>Simulated hotels for demonstration purposes only.</span><a href="#evidence">Evidence policy <ArrowUpRight size={13} weight="bold" /></a><span><Headphones size={14} /> Call evidence retained for this session</span></footer>

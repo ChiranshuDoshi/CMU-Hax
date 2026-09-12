@@ -4984,6 +4984,380 @@ h3,
   }
 }
 
+.agent-loading-list {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-loading-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d9e2df;
+  border-radius: 12px;
+  background: #f7faf9;
+}
+
+.agent-loading-row strong,
+.agent-loading-row small {
+  display: block;
+}
+
+.agent-loading-row strong {
+  color: #22302c;
+  font-size: 13px;
+}
+
+.agent-loading-row small {
+  margin-top: 3px;
+  color: #6e7b77;
+  font-size: 10px;
+}
+
+.hotel-thumb {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(18, 32, 28, 0.12);
+}
+
+.hotel-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 220ms ease;
+}
+
+.hotel-thumb i {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.86);
+  font-family: "Manrope", sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.call-table-head--picker,
+.call-row {
+  grid-template-columns: 24px minmax(210px, 1.5fr) minmax(100px, 0.7fr) minmax(168px, 1.15fr) minmax(88px, 0.65fr) 46px;
+}
+
+.call-row--picked {
+  background: #f3faf7;
+  box-shadow: inset 2px 0 0 var(--teal);
+}
+
+.call-row .radio-wrap i {
+  border-radius: 5px;
+}
+
+.call-row .radio-wrap input:checked + i {
+  border-width: 1px;
+  border-color: var(--teal);
+  background: var(--teal);
+}
+
+.call-row .radio-wrap input:checked + i::after {
+  content: "";
+  width: 8px;
+  height: 4px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.aggregator-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.aggregator-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 6px;
+  border: 1px solid #d7e0dd;
+  border-radius: 999px;
+  background: #f7faf9;
+}
+
+.aggregator-chip em {
+  color: #6d7975;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.aggregator-chip strong {
+  color: #24312d;
+  font-family: "Manrope", sans-serif;
+  font-size: 10px;
+}
+
+.call-price small {
+  display: block;
+  margin-top: 3px;
+  color: #7b8885;
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.quote-table-head--agent,
+.quote-table-head--agent + .quote-row,
+.quote-row:has(.old-price) {
+  grid-template-columns: minmax(200px, 1.4fr) minmax(90px, 0.7fr) minmax(100px, 0.75fr) minmax(80px, 0.6fr) 46px;
+}
+
+.old-price {
+  color: #8a938f;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.agent-calls-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 0;
+  align-items: start;
+}
+
+.agent-savings-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 4px 0 16px;
+}
+
+.agent-savings-strip div {
+  padding: 12px 14px;
+  border: 1px solid #dce4e1;
+  border-radius: 10px;
+  background: #f7faf9;
+}
+
+.agent-savings-strip span,
+.agent-savings-strip small {
+  display: block;
+  color: #6e7b77;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.agent-savings-strip strong {
+  display: block;
+  margin: 4px 0 2px;
+  color: #16332d;
+  font-family: "Manrope", sans-serif;
+  font-size: 22px;
+}
+
+.agent-call-list {
+  display: grid;
+  gap: 12px;
+}
+
+.agent-call-card {
+  position: relative;
+  padding: 16px 16px 14px;
+  border: 1px solid #d9e2df;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.agent-call-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agent-call-title {
+  min-width: 0;
+  flex: 1;
+}
+
+.agent-call-title strong,
+.agent-call-title small {
+  display: block;
+}
+
+.agent-call-title strong {
+  color: #22302c;
+  font-size: 14px;
+}
+
+.agent-call-title small {
+  margin-top: 3px;
+  color: #74817d;
+  font-size: 10px;
+}
+
+.agent-call-index {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  color: #c2cbc7;
+  font-family: "Manrope", sans-serif;
+  font-size: 10px;
+}
+
+.agent-price-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f4f8f7;
+}
+
+.agent-price-col span,
+.agent-price-col small,
+.agent-price-col em {
+  display: block;
+}
+
+.agent-price-col span {
+  color: #6e7b77;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.agent-price-col strong {
+  display: block;
+  margin: 4px 0 2px;
+  font-family: "Manrope", sans-serif;
+  font-size: 20px;
+}
+
+.agent-price-col small,
+.agent-price-col em {
+  color: #74817d;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.agent-price-col--final strong {
+  color: var(--teal-dark);
+}
+
+.agent-price-col--saved strong {
+  color: #1b6b4a;
+}
+
+.agent-call-footer {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-concession {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #325d57;
+  font-size: 11px;
+}
+
+.agent-recording {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #dce4e1;
+  border-radius: 10px;
+  background: #0f1c19;
+}
+
+.agent-recording-controls {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.agent-recording-controls small,
+.agent-recording-error {
+  color: #9db0aa;
+  font-size: 10px;
+}
+
+.agent-recording-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #f0b4a8;
+}
+
+.agent-recording .waveform {
+  height: 28px;
+}
+
+.agent-script {
+  color: #bdccc8;
+  font-size: 11px;
+}
+
+.agent-script summary {
+  cursor: pointer;
+  color: #8aa39c;
+  font-size: 10px;
+}
+
+.agent-script p {
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+
+.agent-script strong {
+  color: #d8e6e1;
+}
+
+@media (max-width: 980px) {
+  .agent-calls-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-price-compare {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-price-compare .outcome-arrow {
+    display: none;
+  }
+
+  .call-table-head--picker {
+    display: none;
+  }
+
+  .calling-layout .call-row,
+  .call-row {
+    grid-template-columns: 24px minmax(0, 1fr) 46px;
+    padding: 10px 0;
+  }
+
+  .calling-layout .rating-source,
+  .calling-layout .aggregator-cell,
+  .calling-layout .call-price {
+    grid-column: 2;
+  }
+
+  .calling-layout .call-price {
+    grid-row: auto;
+    text-align: left;
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .segment:hover:not(.segment--active),
   .preset:hover:not(.preset--active) {

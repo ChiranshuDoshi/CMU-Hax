@@ -17,6 +17,7 @@ export const api = {
   signup: (displayName, email) => post("/api/app/signup", { displayName, email }),
   research: (profile) => post("/api/app/research", profile),
   quotes: () => post("/api/app/quotes", {}),
+  agentCalls: (selectedQuoteIds) => post("/api/app/agent-calls", { selectedQuoteIds }),
   negotiate: (targetAmountCents, selectedQuoteId) =>
     post("/api/app/negotiate", { targetAmountCents, selectedQuoteId }),
   startCall: (targetAmountCents, selectedQuoteId) =>

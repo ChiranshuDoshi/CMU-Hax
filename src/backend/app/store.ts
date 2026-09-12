@@ -8,6 +8,8 @@ import type {
   ProviderRankingResult,
 } from "@/domain/schemas/person4";
 
+import type { AgentCallView } from "./agent-calls";
+
 export interface Account {
   readonly id: string;
   readonly displayName: string;
@@ -122,6 +124,8 @@ export interface WorkflowState {
   ranking: ProviderRankingResult | null;
   quotes: QuoteView[] | null;
   recommendedQuoteId: string | null;
+  /** First-round simulated agent calls for the hotels the user selected. */
+  agentCalls: AgentCallView[] | null;
   handoff: NegotiationHandoff | null;
   negotiation: NegotiationResultView | null;
 }
@@ -132,8 +136,9 @@ const LIVE_CALL_ACCOUNT_QUOTA_PREFIX = "policyscout:live-call:account:";
 const LIVE_CALL_IP_QUOTA_PREFIX = "policyscout:live-call:ip:";
 export const WORKFLOW_RETENTION_SECONDS = 60 * 60 * 24 * 7;
 const LIVE_CALL_QUOTA_WINDOW_SECONDS = 15 * 60;
-const MAX_LIVE_CALL_STARTS_PER_ACCOUNT = 3;
-const MAX_LIVE_CALL_STARTS_PER_IP = 12;
+/** Demo-friendly caps. Failed/retried Grok calls used to burn a 3-start budget. */
+export const MAX_LIVE_CALL_STARTS_PER_ACCOUNT = 40;
+export const MAX_LIVE_CALL_STARTS_PER_IP = 80;
 
 export class WorkflowStoreError extends Error {
   constructor(
@@ -313,6 +318,7 @@ export async function createAccount(displayName: string, email: string): Promise
     ranking: null,
     quotes: null,
     recommendedQuoteId: null,
+    agentCalls: null,
     handoff: null,
     negotiation: null,
   };
