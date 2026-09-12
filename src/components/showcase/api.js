@@ -23,6 +23,7 @@ export const api = {
     post("/api/app/negotiate/call/start", { targetAmountCents, selectedQuoteId }),
   callConnected: (conversationId) =>
     post("/api/app/negotiate/call/connected", { conversationId }),
+  completeCall: (payload) => post("/api/app/negotiate/call/complete", payload ?? {}),
   recordNegotiationEvent: (event) => post("/api/app/negotiate/call/event", event),
   pollNegotiation: () => post("/api/app/negotiate/poll", {}),
   async workflow() {

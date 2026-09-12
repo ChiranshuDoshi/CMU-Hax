@@ -832,11 +832,15 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
       setStep("quotes");
       return;
     }
-    // Ensure the server has the conversation id so the poller can finalize, then
-    // keep the overlay in its "finalizing" state until the poll reaches "result".
+    // IosCallView already posts the transcript to /complete; refresh snapshot so
+    // the poller (or this path) can advance to the result screen.
     try {
-      const res = await api.callConnected(conversationId);
-      setNegotiation(res.snapshot.negotiation);
+      const res = await api.pollNegotiation();
+      if (res.snapshot.negotiation) setNegotiation(res.snapshot.negotiation);
+      if (res.snapshot.negotiation?.callStatus === "completed") {
+        setCallContext(null);
+        setStep("result");
+      }
     } catch {
       // The poll effect keeps retrying.
     }

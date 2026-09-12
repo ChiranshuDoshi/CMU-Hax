@@ -3,15 +3,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import { isLiveNegotiationConfigured } from "@/backend/app/negotiation-call";
 
 const environment = process.env as Record<string, string | undefined>;
-const originalApiKey = environment.ELEVENLABS_API_KEY;
-const originalAgentId = environment.ELEVENLABS_NEGOTIATOR_AGENT_ID;
+const originalApiKey = environment.XAI_API_KEY;
 const originalNodeEnv = environment.NODE_ENV;
 
 function restoreEnvironment(): void {
-  if (originalApiKey === undefined) delete environment.ELEVENLABS_API_KEY;
-  else environment.ELEVENLABS_API_KEY = originalApiKey;
-  if (originalAgentId === undefined) delete environment.ELEVENLABS_NEGOTIATOR_AGENT_ID;
-  else environment.ELEVENLABS_NEGOTIATOR_AGENT_ID = originalAgentId;
+  if (originalApiKey === undefined) delete environment.XAI_API_KEY;
+  else environment.XAI_API_KEY = originalApiKey;
   if (originalNodeEnv === undefined) delete environment.NODE_ENV;
   else environment.NODE_ENV = originalNodeEnv;
 }
@@ -19,18 +16,16 @@ function restoreEnvironment(): void {
 describe("live negotiation configuration", () => {
   afterEach(restoreEnvironment);
 
-  it("enables the browser call in production when ElevenLabs is configured", () => {
+  it("enables the browser call when Grok Voice is configured", () => {
     environment.NODE_ENV = "production";
-    environment.ELEVENLABS_API_KEY = "elevenlabs-key";
-    environment.ELEVENLABS_NEGOTIATOR_AGENT_ID = "agent-id";
+    environment.XAI_API_KEY = "xai-key";
 
     expect(isLiveNegotiationConfigured()).toBe(true);
   });
 
-  it("requires both ElevenLabs configuration values", () => {
+  it("requires XAI_API_KEY", () => {
     environment.NODE_ENV = "production";
-    environment.ELEVENLABS_API_KEY = "elevenlabs-key";
-    delete environment.ELEVENLABS_NEGOTIATOR_AGENT_ID;
+    delete environment.XAI_API_KEY;
 
     expect(isLiveNegotiationConfigured()).toBe(false);
   });

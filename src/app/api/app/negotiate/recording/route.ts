@@ -5,7 +5,7 @@ import { appErrorResponse, requireContext } from "../../_lib";
 
 export const runtime = "nodejs";
 
-/** Streams the ElevenLabs conversation recording (proxied so the API key stays server-side). */
+/** Streams a call recording when available (Grok Voice demo has no server recording). */
 export async function GET(): Promise<Response> {
   try {
     const { workflow } = await requireContext();

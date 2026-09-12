@@ -99,6 +99,18 @@
       "@/integrations/tavily/*": [
         "./src/backend/market-research/integrations/tavily/*"
       ],
+      "@/integrations/querit": [
+        "./src/backend/market-research/integrations/querit"
+      ],
+      "@/integrations/querit/*": [
+        "./src/backend/market-research/integrations/querit/*"
+      ],
+      "@/integrations/ifm": [
+        "./src/backend/shared/integrations/ifm"
+      ],
+      "@/integrations/ifm/*": [
+        "./src/backend/shared/integrations/ifm/*"
+      ],
       "@/config/insurance-lines": [
         "./src/backend/shared/config/insurance-lines"
       ],
