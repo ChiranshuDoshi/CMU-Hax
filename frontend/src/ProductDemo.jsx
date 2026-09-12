@@ -3,7 +3,7 @@ import {
   ArrowCounterClockwise,
   ArrowRight,
   ArrowUpRight,
-  CarProfile,
+  Bed,
   Check,
   CheckCircle,
   Clock,
@@ -23,20 +23,20 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import { INSURERS, PRICE_STEPS, REPLAY_CLIPS, TRANSCRIPT } from "./data.js";
+import { HOTELS, PRICE_STEPS, REPLAY_CLIPS, TRANSCRIPT } from "./data.js";
 import { Waveform } from "./Waveform.jsx";
 
 const STEP_META = {
-  vehicle: { index: 1, label: "Vehicle profile", title: "Set up your quote profile", description: "Confirm the details agents need to request comparable coverage." },
-  calling: { index: 2, label: "Top 5 calls", title: "PolicyScout is calling the market", description: "Every provider receives the same verified vehicle and coverage profile." },
-  quotes: { index: 3, label: "Compare", title: "Five quotes, normalized", description: "Choose an offer and set the private target for the second-round negotiation." },
-  negotiating: { index: 4, label: "Negotiate", title: "Negotiator is working the selected quote", description: "The target stays private while verified concessions are recorded." },
-  result: { index: 5, label: "Final result", title: "A better price, with the proof", description: "Review the outcome, unchanged coverage, full call, and decisive moments." },
+  vehicle: { index: 1, label: "Stay profile", title: "Set up your group stay", description: "Confirm the details hotels need to return comparable group rates." },
+  calling: { index: 2, label: "Top 5 hotels", title: "StayScout is researching the market", description: "Every hotel receives the same verified group-stay request." },
+  quotes: { index: 3, label: "Compare", title: "Five group rates, normalized", description: "Choose an offer and set the private target for the negotiation." },
+  negotiating: { index: 4, label: "Negotiate", title: "Negotiator is working the selected hotel", description: "The target stays private while verified concessions are recorded." },
+  result: { index: 5, label: "Final result", title: "A better group rate, with the proof", description: "Review the outcome, unchanged stay details, full call, and decisive moments." },
 };
 
 const NAV_ITEMS = [
-  { id: "vehicle", label: "Profile", icon: CarProfile },
-  { id: "calling", label: "Top 5 Research", icon: MagnifyingGlass },
+  { id: "vehicle", label: "Stay profile", icon: Bed },
+  { id: "calling", label: "Top 5 hotels", icon: MagnifyingGlass },
   { id: "quotes", label: "Quotes", icon: ListChecks },
   { id: "negotiating", label: "Negotiation", icon: PhoneCall },
   { id: "result", label: "Evidence & calls", icon: FileText },
@@ -88,7 +88,7 @@ function StepHeader({ step }) {
 }
 
 function VehicleView({ profile, setProfile, onStart }) {
-  const [bodyType, setBodyType] = useState("SUV");
+  const [roomType, setRoomType] = useState("Deluxe");
 
   function updateField(field, value) {
     setProfile((current) => ({ ...current, [field]: value }));
@@ -100,77 +100,77 @@ function VehicleView({ profile, setProfile, onStart }) {
         <div className="form-section-head call-sheet-head">
           <div>
             <span className="section-kicker">Agent-ready call sheet</span>
-            <h3>Driver, vehicle, and coverage facts</h3>
-            <p>Only confirmed facts will be sent to insurers.</p>
+            <h3>Group, room, and stay facts</h3>
+            <p>Only confirmed facts will be sent to hotel sales teams.</p>
           </div>
           <div className="sheet-head-actions"><div className="readiness-summary"><strong>12 / 12</strong><span>required facts ready</span></div><button className="primary-button" type="submit">Start research <ArrowRight size={16} weight="bold" /></button></div>
         </div>
 
         <div className="call-sheet-section">
-          <div className="sheet-section-title"><span>01</span><div><strong>Vehicle &amp; garaging</strong><small>Required for carrier eligibility and rating</small></div></div>
+          <div className="sheet-section-title"><span>01</span><div><strong>Hotel &amp; room preferences</strong><small>Required for availability and group pricing</small></div></div>
           <div className="body-type-row">
-            <span><strong>Body type</strong><SourceLabel type="user">User confirmed</SourceLabel></span>
-            <div className="body-type-control" aria-label="Vehicle body type">
-              {['Sedan', 'SUV', 'Pickup'].map((type) => (
-                <button className={bodyType === type ? "segment segment--active" : "segment"} type="button" key={type} aria-pressed={bodyType === type} onClick={() => setBodyType(type)}>
-                  <CarProfile size={17} weight={bodyType === type ? "fill" : "regular"} /> {type}
+            <span><strong>Room type</strong><SourceLabel type="user">Group confirmed</SourceLabel></span>
+            <div className="body-type-control" aria-label="Preferred room type">
+              {['Standard', 'Deluxe', 'Ultra deluxe'].map((type) => (
+                <button className={roomType === type ? "segment segment--active" : "segment"} type="button" key={type} aria-pressed={roomType === type} onClick={() => setRoomType(type)}>
+                  <Bed size={17} weight={roomType === type ? "fill" : "regular"} /> {type}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="field-grid">
-            <label><span>Year <SourceLabel type="declaration">Declaration page</SourceLabel></span><input name="vehicleYear" value={profile.year} onChange={(event) => updateField("year", event.target.value)} inputMode="numeric" autoComplete="off" /></label>
-            <label><span>Make <SourceLabel type="declaration">Declaration page</SourceLabel></span><input name="vehicleMake" value={profile.make} onChange={(event) => updateField("make", event.target.value)} autoComplete="off" /></label>
-            <label><span>Model <SourceLabel type="declaration">Declaration page</SourceLabel></span><input name="vehicleModel" value={profile.model} onChange={(event) => updateField("model", event.target.value)} autoComplete="off" /></label>
-            <label><span>Garaging ZIP <SourceLabel type="required">Agent required</SourceLabel></span><input name="postalCode" value={profile.zip} onChange={(event) => updateField("zip", event.target.value)} inputMode="numeric" autoComplete="postal-code" /></label>
-            <label><span>Annual mileage <SourceLabel type="user">User confirmed</SourceLabel></span><input name="annualMileage" value={profile.mileage} onChange={(event) => updateField("mileage", event.target.value)} inputMode="numeric" autoComplete="off" /></label>
-            <label><span>Current premium <SourceLabel type="hidden">Hidden first round</SourceLabel></span><input name="currentPremium" value={profile.premium} onChange={(event) => updateField("premium", event.target.value)} inputMode="numeric" autoComplete="off" /></label>
+            <label><span>Hotel class <SourceLabel type="user">Group confirmed</SourceLabel></span><input name="stars" value={profile.stars} onChange={(event) => updateField("stars", event.target.value)} autoComplete="off" /></label>
+            <label><span>Location <SourceLabel type="user">Group confirmed</SourceLabel></span><input name="location" value={profile.location} onChange={(event) => updateField("location", event.target.value)} autoComplete="off" /></label>
+            <label><span>Check-in / check-out <SourceLabel type="declaration">Event itinerary</SourceLabel></span><input name="dates" value={profile.dates} onChange={(event) => updateField("dates", event.target.value)} autoComplete="off" /></label>
+            <label><span>Number of rooms <SourceLabel type="required">Sales required</SourceLabel></span><input name="rooms" value={profile.rooms} onChange={(event) => updateField("rooms", event.target.value)} inputMode="numeric" autoComplete="off" /></label>
+            <label><span>Guests per room <SourceLabel type="user">Group confirmed</SourceLabel></span><input name="guests" value={profile.guests} onChange={(event) => updateField("guests", event.target.value)} inputMode="numeric" autoComplete="off" /></label>
+            <label><span>Nightly price range <SourceLabel type="hidden">Hidden first round</SourceLabel></span><input name="budget" value={profile.budget} onChange={(event) => updateField("budget", event.target.value)} autoComplete="off" /></label>
           </div>
         </div>
 
         <div className="call-sheet-section call-sheet-section--compact">
-          <div className="sheet-section-title"><span>02</span><div><strong>Driver &amp; risk</strong><small>Identity and recent driving history</small></div></div>
+          <div className="sheet-section-title"><span>02</span><div><strong>Group &amp; booking needs</strong><small>Details that affect the group offer</small></div></div>
           <div className="fact-ledger">
-            <div><span>Primary driver</span><strong>Alex Morgan</strong><SourceLabel type="user">User confirmed</SourceLabel></div>
-            <div><span>License history</span><strong>TX · 9 years</strong><SourceLabel type="required">Agent required</SourceLabel></div>
-            <div><span>Claims / violations</span><strong>None in 5 years</strong><SourceLabel type="user">User confirmed</SourceLabel></div>
+            <div><span>Group organizer</span><strong>Alex Morgan</strong><SourceLabel type="user">Group confirmed</SourceLabel></div>
+            <div><span>Guest total</span><strong>48 guests</strong><SourceLabel type="required">Sales required</SourceLabel></div>
+            <div><span>Meeting space</span><strong>1 breakout room</strong><SourceLabel type="user">Group confirmed</SourceLabel></div>
           </div>
         </div>
 
         <div className="call-sheet-section call-sheet-section--compact">
-          <div className="sheet-section-title"><span>03</span><div><strong>Coverage baseline</strong><small>Every carrier receives the same limits</small></div><SourceLabel type="declaration">Declaration page</SourceLabel></div>
-          <div className="coverage-baseline" aria-label="Coverage baseline">
-            <div><span>Liability</span><strong>100 / 300 / 100</strong></div>
-            <div><span>Collision</span><strong>$500 deductible</strong></div>
-            <div><span>Comprehensive</span><strong>$500 deductible</strong></div>
-            <div><span>Roadside</span><strong>Included</strong></div>
+          <div className="sheet-section-title"><span>03</span><div><strong>Stay baseline</strong><small>Every hotel receives the same inclusions</small></div><SourceLabel type="declaration">Event brief</SourceLabel></div>
+          <div className="coverage-baseline" aria-label="Stay baseline">
+            <div><span>Breakfast</span><strong>Included daily</strong></div>
+            <div><span>Facilities</span><strong>Pool &amp; gym</strong></div>
+            <div><span>Wi-Fi</span><strong>Included</strong></div>
+            <div><span>Cancellation</span><strong>14-day flexible</strong></div>
           </div>
         </div>
 
         <div className="form-actions">
-          <div className="disclosure-rule"><LockKey size={16} weight="fill" /><span><strong>First-round disclosure rule</strong>Current premium and target range stay private until you approve a negotiation.</span></div>
+          <div className="disclosure-rule"><LockKey size={16} weight="fill" /><span><strong>First-round disclosure rule</strong>Your budget range and target stay private until you approve a negotiation.</span></div>
         </div>
       </form>
 
       <aside className="vehicle-identity vehicle-dossier">
-        <div className="dossier-head"><span className="section-kicker">Vehicle dossier</span><span className="dossier-id">VIN ending 3456</span></div>
-        <div className="vehicle-image-wrap"><img src="/assets/vehicle-profile.webp" width="640" height="442" alt="Dark emerald compact SUV" /></div>
+        <div className="dossier-head"><span className="section-kicker">Stay dossier</span><span className="dossier-id">Request STAY-8K42</span></div>
+        <div className="vehicle-image-wrap"><img src="/assets/hotel-dossier.webp" width="640" height="442" alt="Contemporary Chicago hotel exterior" /></div>
         <div className="vehicle-meta">
-          <h3>{profile.year} {profile.make} {profile.model}</h3>
-          <p>Compact SUV · Personal use · Owned</p>
+          <h3>{profile.stars} · {profile.location}</h3>
+          <p>{roomType} rooms · Group booking · 3 nights</p>
           <dl>
-            <div><dt>Garaged</dt><dd>Austin, TX</dd></div>
-            <div><dt>Mileage</dt><dd>{profile.mileage} miles</dd></div>
-            <div><dt>Policy term</dt><dd>12 months</dd></div>
+            <div><dt>Dates</dt><dd>{profile.dates}</dd></div>
+            <div><dt>Rooms</dt><dd>{profile.rooms} requested</dd></div>
+            <div><dt>Guests</dt><dd>48 total</dd></div>
           </dl>
         </div>
         <div className="dossier-evidence">
-          <div><FileText size={16} /><span><strong>Declaration page parsed</strong><small>8 vehicle and coverage facts</small></span></div>
-          <div><CheckCircle size={16} /><span><strong>User confirmation complete</strong><small>4 driver and usage facts</small></span></div>
-          <div><LockKey size={16} /><span><strong>Private fields isolated</strong><small>Not included in first-round call scripts</small></span></div>
+          <div><FileText size={16} /><span><strong>Event brief parsed</strong><small>8 stay and group facts</small></span></div>
+          <div><CheckCircle size={16} /><span><strong>Group confirmation complete</strong><small>4 room and guest facts</small></span></div>
+          <div><LockKey size={16} /><span><strong>Private budget isolated</strong><small>Not included in first-round call scripts</small></span></div>
         </div>
-        <div className="dossier-footer"><span>Call sheet status</span><strong><CheckCircle size={15} weight="fill" /> Ready for market research</strong></div>
+        <div className="dossier-footer"><span>Request status</span><strong><CheckCircle size={15} weight="fill" /> Ready for hotel research</strong></div>
       </aside>
     </motion.div>
   );
@@ -242,7 +242,7 @@ function CallingView({ calls, complete, onContinue }) {
     <motion.div className="calling-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
       <section className="call-board" aria-live="polite" aria-busy={!complete}>
         <div className="call-board-head">
-          <div><span className="section-kicker">Market research &amp; call operations</span><h3>{complete ? "All five quotes received" : `${completedCount} of 5 quotes verified`}</h3><p>Ranked providers are contacted with the same call sheet and coverage baseline.</p></div>
+          <div><span className="section-kicker">Hotel research &amp; sales outreach</span><h3>{complete ? "All five group rates received" : `${completedCount} of 5 group rates verified`}</h3><p>Ranked hotels are contacted with the same group-stay request and inclusion baseline.</p></div>
           <span className="live-indicator"><span /> {complete ? "Complete" : "Agent active"}</span>
         </div>
         <div className="progress-track" aria-hidden="true"><motion.span initial={false} animate={{ scaleX: progress / 100 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} /></div>
@@ -252,62 +252,62 @@ function CallingView({ calls, complete, onContinue }) {
           {calls.map((call, index) => (
             <article className={call.status === "Calling" ? "call-row call-row--active" : "call-row"} key={call.id}>
               <span className="call-order">0{index + 1}</span>
-              <div className="call-provider"><span className="provider-monogram">{call.name.slice(0, 1)}</span><span><strong>{call.name}</strong><small>Auto · 12-month policy</small></span></div>
+              <div className="call-provider"><span className="provider-monogram">{call.name.slice(0, 1)}</span><span><strong>{call.name}</strong><small>Chicago · 4–5 star hotel</small></span></div>
               <div className="rating-source"><strong><Star size={13} weight="fill" /> {call.rating}</strong><SourceLabel type="declaration">Demo rating index</SourceLabel></div>
-              <div className="eligibility-state"><Check size={13} weight="bold" /><span><strong>Austin, TX</strong><small>Eligible</small></span></div>
+              <div className="eligibility-state"><Check size={13} weight="bold" /><span><strong>Downtown Chicago</strong><small>Eligible</small></span></div>
               <div className="call-state-cell"><CallAudioPlayer src={CALL_AUDIO[index] ?? null} label={call.name} /><StatusBadge status={call.status} /></div>
-              <span className="call-price">{call.status === "Verified" ? <><strong>{formatCurrency(call.annual)}</strong><small>4 facts captured</small></> : call.status === "Calling" ? <><span className="pending-line" /><small>Collecting quote…</small></> : <><span className="pending-line pending-line--muted" /><small>Waiting for call</small></>}</span>
+              <span className="call-price">{call.status === "Verified" ? <><strong>{formatCurrency(call.nightly)}</strong><small>per room / night</small></> : call.status === "Calling" ? <><span className="pending-line" /><small>Collecting rate…</small></> : <><span className="pending-line pending-line--muted" /><small>Waiting for call</small></>}</span>
             </article>
           ))}
         </div>
 
         <div className="call-board-footer">
-          <span><ShieldCheck size={15} /> Coverage limits locked across all five calls</span>
-          <button className="primary-button" type="button" disabled={!complete} onClick={onContinue}>Review verified quotes <ArrowRight size={17} weight="bold" /></button>
+          <span><ShieldCheck size={15} /> Dates, rooms, and inclusions locked across all five calls</span>
+          <button className="primary-button" type="button" disabled={!complete} onClick={onContinue}>Review verified rates <ArrowRight size={17} weight="bold" /></button>
         </div>
       </section>
 
       <aside className="research-evidence">
         <p className="section-kicker">Research basis</p>
         <h3>Why these five</h3>
-        <p>Five demo providers passed location and product eligibility before the calling agent started.</p>
+        <p>Five hotels passed location, group capacity, and stay-fit checks before outreach started.</p>
         <ol>
           <li><span className="evidence-index">01</span><span><strong>Rating model</strong>Score, review volume, and complaint signal.</span><SourceLabel type="declaration">Recorded</SourceLabel></li>
-          <li><span className="evidence-index">02</span><span><strong>Market eligibility</strong>Texas availability and auto product fit.</span><SourceLabel type="user">Matched</SourceLabel></li>
-          <li><span className="evidence-index">03</span><span><strong>Quote evidence</strong>Transcript timestamps and normalized terms.</span><SourceLabel type={complete ? "user" : "required"}>{complete ? "Complete" : "Collecting"}</SourceLabel></li>
+          <li><span className="evidence-index">02</span><span><strong>Stay eligibility</strong>Chicago location, dates, and group capacity fit.</span><SourceLabel type="user">Matched</SourceLabel></li>
+          <li><span className="evidence-index">03</span><span><strong>Rate evidence</strong>Transcript timestamps and normalized stay terms.</span><SourceLabel type={complete ? "user" : "required"}>{complete ? "Complete" : "Collecting"}</SourceLabel></li>
         </ol>
-        <div className="evidence-policy-note"><FileText size={16} /><span><strong>Evidence standard</strong>No provider can rank first until price, deductible, and coverage are transcript-backed.</span></div>
+        <div className="evidence-policy-note"><FileText size={16} /><span><strong>Evidence standard</strong>No hotel can rank first until rate, room type, and inclusions are transcript-backed.</span></div>
       </aside>
     </motion.div>
   );
 }
 
 function QuotesView({ selectedProvider, setSelectedProvider, target, setTarget, onNegotiate }) {
-  const selectedQuote = INSURERS.find((insurer) => insurer.id === selectedProvider);
+  const selectedQuote = HOTELS.find((hotel) => hotel.id === selectedProvider);
 
   return (
     <motion.div className="quotes-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
       <section className="quote-comparison">
         <div className="comparison-head">
-          <div><span className="section-kicker">Normalized quote ledger</span><h3>Choose the quote you want to negotiate</h3><p>Annualized prices use the same term and coverage baseline.</p></div>
+          <div><span className="section-kicker">Normalized group-rate ledger</span><h3>Choose the hotel you want to negotiate</h3><p>Nightly rates use the same dates, room count, and stay baseline.</p></div>
           <details className="evidence-drawer">
             <summary><FileText size={15} /> Evidence index <span>20</span></summary>
-            <div><strong>Quote evidence</strong><p>Five call transcripts, five normalized coverage checks, five price confirmations, and five rating records.</p></div>
+            <div><strong>Rate evidence</strong><p>Five call transcripts, five stay-equivalency checks, five rate confirmations, and five rating records.</p></div>
           </details>
         </div>
-        <div className="recommendation-strip"><span><SealCheck size={16} weight="fill" /></span><div><strong>System recommendation</strong><p>HarborShield has the strongest verified value: lowest matched premium, $500 deductible, and complete call evidence.</p></div><small>Recommendation only · you decide</small></div>
-        <div className="quote-table" role="radiogroup" aria-label="Insurance quotes">
-          <div className="quote-table-head"><span>Provider</span><span>Coverage</span><span>Annual premium</span><span>Deductible</span><span>Evidence</span><span>Select</span></div>
-          {INSURERS.map((insurer) => {
-            const selected = selectedProvider === insurer.id;
+        <div className="recommendation-strip"><span><SealCheck size={16} weight="fill" /></span><div><strong>System recommendation</strong><p>Lakeside Grand has the strongest verified value: lowest matched rate, deluxe rooms, and complete call evidence.</p></div><small>Recommendation only · you decide</small></div>
+        <div className="quote-table" role="radiogroup" aria-label="Hotel group rates">
+          <div className="quote-table-head"><span>Hotel</span><span>Stay match</span><span>Nightly rate</span><span>Room type</span><span>Evidence</span><span>Select</span></div>
+          {HOTELS.map((hotel) => {
+            const selected = selectedProvider === hotel.id;
             return (
-              <label className={selected ? "quote-row quote-row--selected" : "quote-row"} key={insurer.id}>
-                <span className="quote-provider"><span className="provider-monogram">{insurer.name.slice(0, 1)}</span><span><strong>{insurer.name}</strong><small><Star size={12} weight="fill" /> {insurer.rating} · {insurer.reviews} reviews</small></span>{insurer.recommended && <em>Recommended</em>}</span>
-                <span className="coverage-match"><strong><Check size={13} weight="bold" /> Exact match</strong><small>100/300/100 · $500 comp</small></span>
-                <span className="quote-amount"><strong>{formatCurrency(insurer.annual)}</strong><small>{formatCurrency(Math.round(insurer.annual / 12))} / month</small></span>
-                <span className="deductible-cell"><strong>{formatCurrency(insurer.deductible)}</strong><small>collision</small></span>
-                <span className="quote-evidence"><StatusBadge status={insurer.confidence} /><small>4 call facts</small></span>
-                <span className="radio-wrap"><input type="radio" name="provider" value={insurer.id} checked={selected} onChange={() => setSelectedProvider(insurer.id)} /><i /></span>
+              <label className={selected ? "quote-row quote-row--selected" : "quote-row"} key={hotel.id}>
+                <span className="quote-provider"><span className="provider-monogram">{hotel.name.slice(0, 1)}</span><span><strong>{hotel.name}</strong><small><Star size={12} weight="fill" /> {hotel.rating} · {hotel.reviews} reviews</small></span>{hotel.recommended && <em>Recommended</em>}</span>
+                <span className="coverage-match"><strong><Check size={13} weight="bold" /> Exact match</strong><small>24 rooms · 3 nights · breakfast</small></span>
+                <span className="quote-amount"><strong>{formatCurrency(hotel.nightly)}</strong><small>per room / night</small></span>
+                <span className="deductible-cell"><strong>{hotel.roomType}</strong><small>room category</small></span>
+                <span className="quote-evidence"><StatusBadge status={hotel.confidence} /><small>4 call facts</small></span>
+                <span className="radio-wrap"><input type="radio" name="hotel" value={hotel.id} checked={selected} onChange={() => setSelectedProvider(hotel.id)} /><i /></span>
               </label>
             );
           })}
@@ -316,14 +316,14 @@ function QuotesView({ selectedProvider, setSelectedProvider, target, setTarget, 
 
       <aside className="target-panel">
         <div className="target-panel-head"><Target size={20} weight="fill" /><span><p className="section-kicker">Private negotiation goal</p><h3>Set your target</h3></span></div>
-        <div className="selection-context"><span>Your selection</span><strong>{selectedQuote?.name}</strong><small>{formatCurrency(selectedQuote?.annual)} annual quote</small></div>
-        <p>PolicyScout will ask for this outcome without disclosing your ceiling.</p>
-        <label className="target-input"><span>$</span><input name="targetAnnualPremium" aria-label="Target annual premium" value={target} onChange={(event) => setTarget(event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoComplete="off" /><small>/ year</small></label>
+        <div className="selection-context"><span>Your selection</span><strong>{selectedQuote?.name}</strong><small>{formatCurrency(selectedQuote?.nightly)} per room / night</small></div>
+        <p>StayScout will ask for this outcome without disclosing your ceiling.</p>
+        <label className="target-input"><span>$</span><input name="targetNightlyRate" aria-label="Target nightly room rate" value={target} onChange={(event) => setTarget(event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoComplete="off" /><small>/ night</small></label>
         <div className="range-presets">
-          {[1450, 1500, 1550].map((amount) => <button className={Number(target) === amount ? "preset preset--active" : "preset"} type="button" key={amount} onClick={() => setTarget(String(amount))}>${amount.toLocaleString()}</button>)}
+          {[205, 215, 225].map((amount) => <button className={Number(target) === amount ? "preset preset--active" : "preset"} type="button" key={amount} onClick={() => setTarget(String(amount))}>${amount}</button>)}
         </div>
-        <div className="privacy-confirm"><SourceLabel type="hidden">Hidden from provider</SourceLabel><span>Only the negotiator uses this threshold.</span></div>
-        <button className="primary-button primary-button--wide" type="button" onClick={onNegotiate}>Negotiate selected quote <PhoneCall size={17} weight="fill" /></button>
+        <div className="privacy-confirm"><SourceLabel type="hidden">Hidden from hotel</SourceLabel><span>Only the negotiator uses this threshold.</span></div>
+        <button className="primary-button primary-button--wide" type="button" onClick={onNegotiate}>Negotiate selected rate <PhoneCall size={17} weight="fill" /></button>
       </aside>
     </motion.div>
   );
@@ -337,19 +337,19 @@ function NegotiatingView({ priceIndex, target }) {
     <motion.div className="negotiating-view" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} aria-live="polite">
       <section className="command-panel" aria-label="Live negotiation command center">
         <header className="command-head">
-          <div><span className="live-indicator live-indicator--dark"><span /> Live negotiation</span><h3>HarborShield Auto</h3></div>
+          <div><span className="live-indicator live-indicator--dark"><span /> Live negotiation</span><h3>Lakeside Grand Chicago</h3></div>
           <span className="call-timer"><PhoneCall size={15} weight="fill" /> 04:{String(12 + priceIndex * 27).padStart(2, "0")}</span>
         </header>
         <div className="command-price">
-          <span>Current verified offer</span>
-          <div><motion.strong key={current.price} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>{formatCurrency(current.price)}</motion.strong><small>/ year</small></div>
+          <span>Current verified group rate</span>
+          <div><motion.strong key={current.price} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>{formatCurrency(current.price)}</motion.strong><small>/ room / night</small></div>
           <p>{current.label}</p>
         </div>
         <Waveform active progress={progress / 100} label="Live negotiation waveform" />
         <div className="negotiation-progress" aria-hidden="true"><motion.span initial={false} animate={{ scaleX: progress / 100 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} /></div>
         <div className="live-transcript">
-          <span>PolicyScout</span>
-          <p>{priceIndex < 2 ? "We have a verified competing offer with the same limits. Can you improve this without changing coverage?" : "If the final premium lands under the private target, my client is ready to select this offer."}</p>
+          <span>StayScout</span>
+          <p>{priceIndex < 2 ? "We have a verified competing offer with the same dates, rooms, and amenities. Can you improve this without changing the stay?" : "If the final room rate lands under the private target, our group is ready to book today."}</p>
         </div>
       </section>
 
@@ -362,11 +362,11 @@ function NegotiatingView({ priceIndex, target }) {
             <li className={priceIndex > index ? "concession concession--reached" : "concession"} key={step.time}>
               <span>{priceIndex > index ? <Check size={14} weight="bold" /> : index + 1}</span>
               <div><small>{step.time}</small><strong>{step.label}</strong></div>
-              <em>{priceIndex > index ? `${step.impact}/yr` : "Pending"}</em>
+              <em>{priceIndex > index ? `${formatCurrency(step.impact)}/night` : "Pending"}</em>
             </li>
           ))}
         </ol>
-        <div className="privacy-confirm privacy-confirm--dark"><LockKey size={17} weight="fill" /><span><strong>Private target protected</strong>The provider never sees your ceiling.</span></div>
+        <div className="privacy-confirm privacy-confirm--dark"><LockKey size={17} weight="fill" /><span><strong>Private target protected</strong>The hotel never sees your ceiling.</span></div>
       </aside>
     </motion.div>
   );
@@ -377,10 +377,10 @@ function ResultView({ target, playing, audioProgress, activeClip, onToggleAudio,
     <motion.div className="result-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
       <div className="result-main">
         <section className="outcome-summary" aria-label="Negotiation outcome">
-          <div className="outcome-column"><span>Original quote</span><strong className="old-price">{formatCurrency(1684)}</strong><small>HarborShield Auto · annual</small></div>
+          <div className="outcome-column"><span>Original group rate</span><strong className="old-price">{formatCurrency(248)}</strong><small>Lakeside Grand · per room / night</small></div>
           <ArrowRight className="outcome-arrow" size={26} weight="bold" />
-          <div className="outcome-column outcome-column--final"><span>Final negotiated quote</span><strong>{formatCurrency(1428)}</strong><small>Transcript evidence · 06:11</small></div>
-          <div className="savings-column"><span>Annual savings</span><strong>{formatCurrency(256)}</strong><em>15.2%</em><small><CheckCircle size={14} weight="fill" /> Target under {formatCurrency(target)} achieved</small></div>
+          <div className="outcome-column outcome-column--final"><span>Final negotiated rate</span><strong>{formatCurrency(208)}</strong><small>Transcript evidence · 06:11</small></div>
+          <div className="savings-column"><span>Group stay savings</span><strong>{formatCurrency(2_880)}</strong><em>16.1%</em><small><CheckCircle size={14} weight="fill" /> Target under {formatCurrency(target)} achieved</small></div>
         </section>
 
         <section className="concession-trail">
@@ -391,34 +391,34 @@ function ResultView({ target, playing, audioProgress, activeClip, onToggleAudio,
                 <div className="timeline-meta"><span>{index === 0 ? "Original" : index === PRICE_STEPS.length - 1 ? "Final" : `Counter ${index}`}</span><time>{step.time}</time></div>
                 <strong>{formatCurrency(step.price)}</strong>
                 <span className="timeline-action">{step.label}</span>
-                <small className="timeline-impact">{step.impact ? `${formatCurrency(step.impact)} / year` : "Baseline recorded"}</small>
+                <small className="timeline-impact">{step.impact ? `${formatCurrency(step.impact)} / room / night` : "Baseline recorded"}</small>
               </div>
             ))}
           </div>
         </section>
 
         <section className="coverage-proof" id="evidence">
-          <div className="section-title-row"><div><span className="section-kicker">Coverage and evidence</span><h3>Price changed. Coverage did not.</h3></div><span className="coverage-status"><ShieldCheck size={16} weight="fill" /> Coverage unchanged</span></div>
+          <div className="section-title-row"><div><span className="section-kicker">Stay details and evidence</span><h3>Rate changed. Your stay did not.</h3></div><span className="coverage-status"><ShieldCheck size={16} weight="fill" /> Stay details unchanged</span></div>
           <div className="coverage-table">
-            <div className="coverage-row coverage-row--head"><span>Coverage</span><span>Before</span><span>After</span><span>Status</span></div>
+            <div className="coverage-row coverage-row--head"><span>Stay detail</span><span>Before</span><span>After</span><span>Status</span></div>
             {[
-              ["Liability", "100/300/100", "100/300/100"],
-              ["Collision", "$500 deductible", "$500 deductible"],
-              ["Comprehensive", "$500 deductible", "$500 deductible"],
-              ["Roadside assistance", "Included", "Included"],
+              ["Room allocation", "24 deluxe rooms", "24 deluxe rooms"],
+              ["Meals", "Breakfast included", "Breakfast included"],
+              ["Facilities", "Pool & gym access", "Pool & gym access"],
+              ["Cancellation", "14-day flexible", "14-day flexible"],
             ].map((row) => <div className="coverage-row" key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><span>{row[2]}</span><span><SealCheck size={14} weight="fill" /> Verified</span></div>)}
           </div>
         </section>
 
         <section className="selection-proof">
-          <div><span>Your selection</span><strong>HarborShield Auto · {formatCurrency(1428)}/year</strong><small><CheckCircle size={14} weight="fill" /> Selected by you</small></div>
-          <div><span>PolicyScout recommendation</span><strong>HarborShield Auto · Best overall value</strong><small><SealCheck size={14} weight="fill" /> Recommendation matched</small></div>
+          <div><span>Your selection</span><strong>Lakeside Grand · {formatCurrency(208)}/room/night</strong><small><CheckCircle size={14} weight="fill" /> Selected by you</small></div>
+          <div><span>StayScout recommendation</span><strong>Lakeside Grand · Best overall value</strong><small><SealCheck size={14} weight="fill" /> Recommendation matched</small></div>
           <button className="secondary-button" type="button" onClick={onRestart}><ArrowCounterClockwise size={17} weight="bold" /> Replay demo</button>
         </section>
       </div>
 
       <aside className="voice-proof">
-        <header><div className="voice-title"><span className="voice-shield"><ShieldCheck size={21} weight="fill" /></span><div><strong>PolicyScout Negotiator</strong><small>Call evidence · PS-CALL-0198</small></div></div><span className="voice-call-state"><CheckCircle size={13} weight="fill" /> Complete</span></header>
+        <header><div className="voice-title"><span className="voice-shield"><ShieldCheck size={21} weight="fill" /></span><div><strong>StayScout Negotiator</strong><small>Call evidence · STAY-CALL-0198</small></div></div><span className="voice-call-state"><CheckCircle size={13} weight="fill" /> Complete</span></header>
         <div className="audio-player">
           <div className="audio-label"><span>Full negotiation audio</span><small>06:42</small></div>
           <Waveform active={playing} progress={audioProgress} />
@@ -454,11 +454,11 @@ function ResultView({ target, playing, audioProgress, activeClip, onToggleAudio,
 
 export const ProductDemo = forwardRef(function ProductDemo(_, ref) {
   const [step, setStep] = useState("vehicle");
-  const [profile, setProfile] = useState({ year: "2023", make: "Hyundai", model: "Tucson", zip: "78704", mileage: "18,240", premium: "$1,920" });
-  const [calls, setCalls] = useState(() => INSURERS.map((insurer) => ({ ...insurer, status: "Queued" })));
+  const [profile, setProfile] = useState({ stars: "4–5 stars", location: "Downtown Chicago", dates: "Oct 14–17, 2026", rooms: "24", guests: "2", budget: "$200–$260" });
+  const [calls, setCalls] = useState(() => HOTELS.map((hotel) => ({ ...hotel, status: "Queued" })));
   const [callsComplete, setCallsComplete] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState("harborshield");
-  const [target, setTarget] = useState("1450");
+  const [selectedProvider, setSelectedProvider] = useState("lakeside-grand");
+  const [target, setTarget] = useState("215");
   const [priceIndex, setPriceIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0.62);
@@ -469,10 +469,10 @@ export const ProductDemo = forwardRef(function ProductDemo(_, ref) {
     if (step !== "calling") return undefined;
 
     setCallsComplete(false);
-    setCalls(INSURERS.map((insurer) => ({ ...insurer, status: "Queued" })));
+    setCalls(HOTELS.map((hotel) => ({ ...hotel, status: "Queued" })));
     const timers = [];
 
-    INSURERS.forEach((insurer, index) => {
+    HOTELS.forEach((hotel, index) => {
       timers.push(window.setTimeout(() => {
         setCalls((current) => current.map((call, callIndex) => callIndex === index ? { ...call, status: "Calling" } : call));
       }, index * 680));
@@ -481,7 +481,7 @@ export const ProductDemo = forwardRef(function ProductDemo(_, ref) {
       }, index * 680 + 560));
     });
 
-    timers.push(window.setTimeout(() => setCallsComplete(true), INSURERS.length * 680 + 300));
+    timers.push(window.setTimeout(() => setCallsComplete(true), HOTELS.length * 680 + 300));
     return () => timers.forEach(window.clearTimeout);
   }, [step]);
 
@@ -584,11 +584,11 @@ export const ProductDemo = forwardRef(function ProductDemo(_, ref) {
   }
 
   return (
-    <section className="demo-section" id="demo" ref={ref} aria-label="Interactive PolicyScout demo">
+    <section className="demo-section" id="demo" ref={ref} aria-label="Interactive StayScout demo">
       <div className="demo-app">
         <aside className="demo-sidebar">
-          <div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>PolicyScout<small>Insurance operations</small></span></div>
-          <div className="sidebar-case"><span>Active policy</span><strong>2023 Hyundai Tucson</strong><small>Case PS-AUTO-7F31</small></div>
+          <div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>StayScout<small>Group booking operations</small></span></div>
+          <div className="sidebar-case"><span>Active group stay</span><strong>Chicago leadership retreat</strong><small>Request STAY-8K42</small></div>
           <p className="sidebar-label">Workflow</p>
           <nav aria-label="Demo journey">
             {NAV_ITEMS.map((item) => {
@@ -604,13 +604,13 @@ export const ProductDemo = forwardRef(function ProductDemo(_, ref) {
               );
             })}
           </nav>
-          <div className="sidebar-user"><span>AM</span><div><strong>Alex Morgan</strong><small>Policy owner</small></div></div>
-          <div className="simulated-note"><WarningCircle size={15} /><span><strong>Demo environment</strong>Providers and calls are simulated.</span></div>
+          <div className="sidebar-user"><span>AM</span><div><strong>Alex Morgan</strong><small>Group organizer</small></div></div>
+          <div className="simulated-note"><WarningCircle size={15} /><span><strong>Demo environment</strong>Hotels and calls are simulated.</span></div>
         </aside>
 
         <div className="demo-workspace">
-          <div className="mobile-demo-bar"><div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>PolicyScout</span></div><span>Step {currentStepIndex} / 5</span></div>
-          <div className="demo-topbar"><div className="topbar-breadcrumb"><span>Auto insurance</span><ArrowRight size={12} /><strong>Policy PS-AUTO-7F31</strong></div><div className="global-verification"><SealCheck size={16} weight="fill" /><span><strong>Profile verified</strong><small>12 facts · 2 sources</small></span></div></div>
+          <div className="mobile-demo-bar"><div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>StayScout</span></div><span>Step {currentStepIndex} / 5</span></div>
+          <div className="demo-topbar"><div className="topbar-breadcrumb"><span>Group bookings</span><ArrowRight size={12} /><strong>Request STAY-8K42</strong></div><div className="global-verification"><SealCheck size={16} weight="fill" /><span><strong>Request verified</strong><small>12 facts · 2 sources</small></span></div></div>
           <div className="demo-content">
             <StepHeader step={step} />
             <div className="sr-only" aria-live="polite">Step {currentStepIndex} of 5. {STEP_META[step].title}</div>
@@ -622,7 +622,7 @@ export const ProductDemo = forwardRef(function ProductDemo(_, ref) {
               {step === "result" && <ResultView key="result" target={target} playing={playing} audioProgress={audioProgress} activeClip={activeClip} onToggleAudio={toggleAudio} onClip={playClip} onRestart={restartDemo} />}
             </AnimatePresence>
           </div>
-          <footer className="demo-footer"><span>Simulated providers for demonstration purposes only.</span><a href="#evidence">Evidence policy <ArrowUpRight size={13} weight="bold" /></a><span><Headphones size={14} /> Call evidence retained for this session</span></footer>
+          <footer className="demo-footer"><span>Simulated hotels for demonstration purposes only.</span><a href="#evidence">Evidence policy <ArrowUpRight size={13} weight="bold" /></a><span><Headphones size={14} /> Call evidence retained for this session</span></footer>
         </div>
       </div>
     </section>
