@@ -1,3 +1,4 @@
+@import "@fontsource/manrope/300.css";
 @import "@fontsource/manrope/400.css";
 @import "@fontsource/manrope/500.css";
 @import "@fontsource/manrope/600.css";
@@ -945,10 +946,6 @@ h3,
 .cinematic-copy--hero {
   top: 27%;
   pointer-events: auto;
-}
-
-.cinematic--hotel .cinematic-copy--hero {
-  opacity: var(--hero-opacity);
 }
 
 .cinematic-copy--phase {
@@ -5063,15 +5060,7 @@ h3,
    are written per frame by CinematicShowcase; nothing below hard-codes a position. */
 
 .cinematic--hotel {
-  --glass: rgba(255, 252, 247, 0.34);
-  --glass-strong: rgba(255, 252, 247, 0.5);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-highlight: rgba(255, 255, 255, 0.75);
-  --brass: #b8893d;
-  --brass-light: #dcb978;
-  --ivory: #f7f1e6;
-  --oxblood: #6f2428;
-  --espresso: #120e0b;
+  --facade-src: url("/assets/hotel/entrance-user-3600.jpg");
   --facade-left: 0px;
   --facade-top: 0px;
   --facade-w: 100%;
@@ -5107,11 +5096,10 @@ h3,
   --expand: 0;
   --bezel-opacity: 1;
   --glare-opacity: 0.9;
-  --hero-opacity: 1;
-  --hero-shift: 0px;
   --reception-copy-opacity: 0;
   --reception-copy-shift: 0px;
   --skip-opacity: 1;
+  --rail-opacity: 1;
   --vignette-opacity: 0.35;
   --scroll-progress: 0;
   --desk-x: 0px;
@@ -5167,7 +5155,7 @@ h3,
 }
 
 .cinematic--hotel .cinematic-copy h2 {
-  font-size: clamp(34px, 3.8vw, 52px);
+  font-size: clamp(32px, 3.3vw, 46px);
   line-height: 1.04;
 }
 
@@ -5180,12 +5168,27 @@ h3,
   font-weight: 600;
 }
 
-.cinematic--hotel .cinematic-copy--hero {
-  opacity: var(--hero-opacity);
-  transform: translate3d(0, var(--hero-shift), 0);
-  will-change: opacity, transform;
-  color: #fff;
-  text-shadow: 0 2px 28px rgba(20, 14, 8, 0.55), 0 1px 3px rgba(20, 14, 8, 0.4);
+
+/* Nav wordmark inside the glass pill. */
+.brand-lockup--pill {
+  justify-self: start;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 18px;
+  height: 40px;
+  border: 0;
+  cursor: pointer;
+}
+
+.brand-lockup--pill .brand-word {
+  font-family: "Manrope", "IBM Plex Sans", sans-serif;
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  line-height: 1;
 }
 
 .cinematic--hotel .cinematic-copy--reception {
@@ -5200,52 +5203,14 @@ h3,
   will-change: opacity, transform;
 }
 
-/* Hallway beats: naked editorial type with a soft shadow, scrubbed by scroll. */
+/* Hallway beats share the reception card's position; only opacity/transform are scrubbed. */
 .hall-copy {
-  position: absolute;
-  z-index: 5;
-  left: 50%;
-  top: 22%;
-  width: min(760px, 86vw);
-  transform: translate3d(-50%, 0, 0);
-  text-align: center;
-  color: #1a140f;
-  pointer-events: none;
   will-change: opacity, transform;
 }
 
-/* Soft ivory pool behind the type so it reads over the marble. */
-.hall-copy::before {
-  content: "";
-  position: absolute;
-  inset: -34% -18%;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 50%, rgba(255, 252, 246, 0.85), rgba(255, 252, 246, 0.55) 40%, transparent 72%);
-  filter: blur(18px);
-  z-index: -1;
-}
-
-.hall-copy h2 {
-  margin: 0;
-  font-family: "Cormorant Garamond", "Times New Roman", serif;
-  font-size: clamp(42px, 5.6vw, 82px);
-  line-height: 1;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-.hall-copy p {
-  margin: 18px auto 0;
-  max-width: 460px;
-  color: rgba(60, 48, 36, 0.92);
-  font-size: clamp(15px, 1.25vw, 18px);
-  line-height: 1.5;
-}
-
-.hall-copy--1 { opacity: var(--hall-copy-1-opacity); transform: translate3d(-50%, var(--hall-copy-1-shift), 0); }
-.hall-copy--2 { opacity: var(--hall-copy-2-opacity); transform: translate3d(-50%, var(--hall-copy-2-shift), 0); }
-.hall-copy--3 { opacity: var(--hall-copy-3-opacity); transform: translate3d(-50%, var(--hall-copy-3-shift), 0); }
+.hall-copy--1 { opacity: var(--hall-copy-1-opacity); transform: translate3d(0, var(--hall-copy-1-shift), 0); }
+.hall-copy--2 { opacity: var(--hall-copy-2-opacity); transform: translate3d(0, var(--hall-copy-2-shift), 0); }
+.hall-copy--3 { opacity: var(--hall-copy-3-opacity); transform: translate3d(0, var(--hall-copy-3-shift), 0); }
 
 .cinematic--hotel .hero-support {
   color: rgba(247, 241, 230, 0.78);
@@ -5283,7 +5248,19 @@ h3,
     inset 0 1px 0 var(--glass-highlight),
     inset 0 -1px 0 rgba(255, 255, 255, 0.06),
     inset 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 1px 2px rgba(20, 14, 8, 0.16),
     0 14px 40px rgba(0, 0, 0, 0.18);
+}
+
+/* Nav chrome must hold its edge over the light lobby too: brighter specular, firmer outline. */
+.showcase-nav--glass .glass-pill,
+.showcase-nav--glass .glass-button {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(60, 44, 28, 0.14),
+    0 2px 6px rgba(20, 14, 8, 0.18),
+    0 14px 40px rgba(0, 0, 0, 0.16);
 }
 
 .glass-pill {
@@ -5402,8 +5379,27 @@ h3,
 .cinematic--hotel .scroll-rail {
   padding: 8px 8px 8px 16px;
   border-radius: 999px;
+  border: 0;
+  font: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: rgba(255, 251, 243, 0.8);
-  opacity: var(--skip-opacity);
+  cursor: pointer;
+  opacity: var(--rail-opacity);
+  /* Once the dolly starts the cue is invisible; stop it catching clicks meant for the scene. */
+  pointer-events: var(--rail-pointer, auto);
+  transition: transform 220ms ease;
+}
+
+.cinematic--hotel .scroll-rail:hover,
+.cinematic--hotel .scroll-rail:focus-visible {
+  transform: translate3d(0, -1px, 0);
+  outline: none;
+}
+
+.cinematic--hotel .scroll-rail .scroll-track {
+  display: block;
 }
 
 .cinematic--hotel .scroll-track {
@@ -5655,34 +5651,6 @@ h3,
   will-change: opacity;
 }
 
-.hotel-screen-label {
-  position: absolute;
-  z-index: 6;
-  left: calc(var(--glass-x) + var(--glass-w) / 2);
-  top: calc(var(--glass-y) - 16px);
-  transform: translate(-50%, -100%);
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 14px 6px 10px;
-  color: #1c1612;
-  background: rgba(255, 252, 247, 0.62);
-  border-color: rgba(255, 255, 255, 0.9);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  opacity: var(--reception-copy-opacity);
-  pointer-events: none;
-}
-
-.hotel-screen-label i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--brass);
-  box-shadow: 0 0 0 3px rgba(184, 137, 61, 0.25);
-}
 
 /* --- Haze: warm light in the doorway that thins as we walk in -------------------------- */
 .hotel-haze {
@@ -5717,7 +5685,7 @@ h3,
 .hotel-facade-photo {
   position: absolute;
   inset: 0;
-  background: url("/assets/hotel/entrance-user.jpg") 0 0 / 100% 100% no-repeat;
+  background: var(--facade-src) 0 0 / 100% 100% no-repeat;
   -webkit-mask-image:
     linear-gradient(#000, #000),
     linear-gradient(#000, #000);
@@ -5788,7 +5756,7 @@ h3,
 .hotel-door-leaf {
   position: absolute;
   inset: 0;
-  background: url("/assets/hotel/entrance-user.jpg") no-repeat;
+  background: var(--facade-src) no-repeat;
   background-size: var(--facade-w) var(--facade-h);
 }
 
@@ -5957,20 +5925,12 @@ h3,
 
 @media (max-width: 860px) {
   .cinematic--hotel {
+    --facade-src: url("/assets/hotel/entrance-user-1600.jpg");
     height: 900vh;
   }
 
-  .hall-copy {
-    top: 60%;
-  }
 
-  .hall-copy h2 {
-    font-size: 40px;
-  }
 
-  .hotel-screen-label {
-    display: none;
-  }
 
 
   .cinematic--hotel .cinematic-copy {
@@ -5978,8 +5938,13 @@ h3,
     width: 88vw;
   }
 
-  .cinematic--hotel .cinematic-copy--hero {
-    top: 22%;
+  .brand-lockup--pill {
+    height: 36px;
+    padding: 0 14px;
+  }
+
+  .brand-lockup--pill .brand-word {
+    font-size: 13px;
   }
 
   .cinematic--hotel .cinematic-copy h1 {

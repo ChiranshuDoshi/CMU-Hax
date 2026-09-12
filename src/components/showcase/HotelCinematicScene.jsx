@@ -1,6 +1,7 @@
 /*
  * Photography (both supplied by the project owner for this homepage):
- *  - Facade plate: /assets/hotel/entrance-user.jpg (1024×682) — limestone facade, black marquee,
+ *  - Facade plate: /assets/hotel/entrance-user-3600.jpg (3600×2400, from the owner's 4× upscale;
+ *    /assets/hotel/entrance-user-1600.jpg is served under 860px) — limestone facade, black marquee,
  *    twin lanterns, double glass doors. The two door leaves are cut from this same file (CSS
  *    background crops registered to the plate), so the closed state is pixel-identical.
  *  - Lobby plate:  /assets/hotel/lobby-user.jpg (1024×682) — the marble lobby seen through the
@@ -12,9 +13,10 @@
  */
 
 export const ENTRANCE_PLATE = {
-  src: "/assets/hotel/entrance-user.jpg",
-  width: 1024,
-  height: 682,
+  src: "/assets/hotel/entrance-user-3600.jpg",
+  srcSmall: "/assets/hotel/entrance-user-1600.jpg",
+  width: 3600,
+  height: 2400,
   // The double doors (both leaves, inside the black frame). Also the dolly target.
   door: { x: 0.457, y: 0.512, w: 0.086, h: 0.236 },
   // Lantern positions for the warm bloom that grows as we approach.

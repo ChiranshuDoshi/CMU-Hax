@@ -1,7 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
 import { useReducedMotion } from "motion/react";
-import { BrandMark } from "./BrandMark.jsx";
 import { HotelBookingDashboard } from "./HotelBookingDashboard.jsx";
 import {
   HotelCinematicScene,
@@ -39,7 +38,6 @@ const px = (value) => `${value.toFixed(2)}px`;
 
 // Scroll timeline — fractions of the pinned section's travel.
 const T = {
-  heroOut: [0, 0.05],
   approach: [0.03, 0.3],        // dolly toward the doors: facade 1× → door fills the viewport
   door: [0.14, 0.3],            // leaves swing inward 0 → 80°
   facadeFade: [0.26, 0.34],     // facade edges dissolve; lobby eases from door-fit to full-bleed
@@ -66,6 +64,15 @@ function beat(progress, [start, end]) {
 export function CinematicShowcase({ onSkip, onLogin }) {
   const stageRef = useRef(null);
   const reducedMotion = useReducedMotion();
+
+  // The "Scroll to enter" cue: glide to the door-open beat (leaves ~half open, lobby showing).
+  const scrollToDoors = useCallback(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const travel = Math.max(1, stage.offsetHeight - window.innerHeight);
+    const target = stage.offsetTop + travel * (T.door[0] + (T.door[1] - T.door[0]) * 0.5);
+    window.scrollTo({ top: target, behavior: reducedMotion ? "instant" : "smooth" });
+  }, [reducedMotion]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -217,12 +224,12 @@ export function CinematicShowcase({ onSkip, onLogin }) {
       });
 
       // --- chrome --------------------------------------------------------------------------
-      set("--hero-opacity", interpolate(progress, T.heroOut, [1, 0]).toFixed(3));
-      set("--hero-shift", px(interpolate(progress, T.heroOut, [0, -24])));
       const rc = beat(progress, [T.receptionCopy[0], T.expand[0] + 0.3 * (T.expand[1] - T.expand[0])]);
       set("--reception-copy-opacity", rc.opacity.toFixed(3));
       set("--reception-copy-shift", px(rc.shift));
       set("--skip-opacity", interpolate(progress, [T.expand[0], T.expand[0] + 0.06], [1, 0]).toFixed(3));
+      set("--rail-opacity", interpolate(progress, [0.02, 0.08], [1, 0]).toFixed(3));
+      set("--rail-pointer", progress < 0.08 ? "auto" : "none");
       set("--vignette-opacity", interpolate(progress, [0, T.approach[1], T.hall[1]], [0.35, 0.55, 0]).toFixed(3));
       set("--scroll-progress", progress.toFixed(4));
       stage.dataset.progress = progress.toFixed(3);
@@ -245,16 +252,19 @@ export function CinematicShowcase({ onSkip, onLogin }) {
 
   return (
     <section className="cinematic cinematic--hotel" ref={stageRef} aria-label="Atrium arrival">
+      {/* Hoisted to <head> by React: the hero plate must be there for first paint. */}
+      <link rel="preload" as="image" href={ENTRANCE_PLATE.src} media="(min-width: 861px)" fetchPriority="high" />
+      <link rel="preload" as="image" href={ENTRANCE_PLATE.srcSmall} media="(max-width: 860px)" fetchPriority="high" />
+      <link rel="preload" as="image" href={LOBBY_PLATE.src} />
       <div className="cinematic-sticky">
         <header className="showcase-nav showcase-nav--glass">
           <button
-            className="brand-lockup"
+            className="brand-lockup glass-pill brand-lockup--pill"
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             aria-label="Atrium home"
           >
-            <BrandMark />
-            <span>Atrium</span>
+            <span className="brand-word">Atrium</span>
           </button>
           <nav className="showcase-links glass-pill" aria-label="Primary navigation">
             <button type="button" onClick={onSkip}>Residences</button>
@@ -273,30 +283,28 @@ export function CinematicShowcase({ onSkip, onLogin }) {
           </HotelCinematicScene>
         </div>
 
-        <div className="cinematic-copy cinematic-copy--hero">
-          <p className="scene-index glass-kicker">Fifth Avenue · New York</p>
-          <h1>Good evening.</h1>
-          <p className="hero-support">The suite is held. Your name is already at the desk. Come in.</p>
-          <div className="hero-actions">
-            <button className="glass-button glass-button--solid" type="button" onClick={onSkip}>
-              Request a stay <ArrowRight size={16} weight="bold" />
-            </button>
-            <button className="glass-text" type="button" onClick={onSkip}>Enter quietly</button>
+        {/* Hallway beats — same left glass card as the reception caption; statements swap in
+            place with the scrubbed fade/rise. */}
+        <div className="cinematic-copy cinematic-copy--phase hall-copy hall-copy--1">
+          <div className="glass-caption glass-caption--light">
+            <p className="glass-kicker">The rate</p>
+            <h2>The best rate.<br />Negotiated for you.</h2>
+            <p>Atrium talks to the hotel so you never have to.</p>
           </div>
         </div>
-
-        {/* Hallway beats — Apple product-page register, scrubbed with scroll. */}
-        <div className="hall-copy hall-copy--1">
-          <h2>The best rate.<br />Negotiated for you.</h2>
-          <p>Atrium talks to the hotel so you never have to.</p>
+        <div className="cinematic-copy cinematic-copy--phase hall-copy hall-copy--2">
+          <div className="glass-caption glass-caption--light">
+            <p className="glass-kicker">The deal</p>
+            <h2>Every deal.<br />Instantly.</h2>
+            <p>Rates, upgrades and perks — all on the table, compared in one moment.</p>
+          </div>
         </div>
-        <div className="hall-copy hall-copy--2">
-          <h2>Every deal on the table.<br />Instantly.</h2>
-          <p>Rates, upgrades and perks — compared in one place, in one moment.</p>
-        </div>
-        <div className="hall-copy hall-copy--3">
-          <h2>Effortless.<br />From door to key.</h2>
-          <p>Book in a minute. Arrive like you were expected.</p>
+        <div className="cinematic-copy cinematic-copy--phase hall-copy hall-copy--3">
+          <div className="glass-caption glass-caption--light">
+            <p className="glass-kicker">Arrival</p>
+            <h2>Effortless.<br />From door to key.</h2>
+            <p>Book in a minute. Arrive like you were expected.</p>
+          </div>
         </div>
 
         <div className="cinematic-copy cinematic-copy--phase cinematic-copy--reception">
@@ -307,15 +315,15 @@ export function CinematicShowcase({ onSkip, onLogin }) {
           </div>
         </div>
 
-        <div className="hotel-screen-label glass-pill" aria-hidden="true">
-          <i />
-          <span>Your stay, on the desk</span>
-        </div>
-
-        <div className="scroll-rail glass-pill" aria-hidden="true">
+        <button
+          className="scroll-rail glass-pill"
+          type="button"
+          onClick={scrollToDoors}
+          aria-label="Scroll to enter — open the doors"
+        >
           <span>Scroll to enter</span>
-          <div className="scroll-track"><i /></div>
-        </div>
+          <span className="scroll-track"><i /></span>
+        </button>
 
         <button className="cinematic-skip glass-button" type="button" onClick={onSkip}>
           Skip to the desk <ArrowRight size={14} weight="bold" />
