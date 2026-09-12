@@ -559,7 +559,7 @@ function ResultView({ negotiation, playing, audioProgress, activeClip, replayCli
         {negotiation.callSummary && (
           <div className="transcript-panel">
             <div className="voice-section-title"><span>Call summary</span><small><FileText size={13} weight="fill" /> Analyzed</small></div>
-            <p style={{ display: "block", margin: "10px 0 0", color: "#bdccc8", fontSize: 11, lineHeight: 1.65 }}>{negotiation.callSummary}</p>
+            <p style={{ display: "block", margin: "10px 0 0", color: "var(--voice-muted)", fontSize: 11, lineHeight: 1.65 }}>{negotiation.callSummary}</p>
           </div>
         )}
 

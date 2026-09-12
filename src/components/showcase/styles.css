@@ -10,26 +10,36 @@
 
 :root {
   font-family: "IBM Plex Sans", sans-serif;
-  color: #14201e;
+  color: #1c1612;
   background: #0b0a09;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --ink: #14201e;
-  --ink-soft: #4d5b58;
-  --line: #d8dfdc;
-  --line-strong: #bbc8c3;
-  --surface: #ffffff;
-  --surface-soft: #f3f6f4;
-  --surface-mist: #e8efec;
-  --teal: #087b70;
-  --teal-dark: #075e56;
-  --mint: #7de2c4;
-  --mint-soft: #d9f3e9;
-  --amber: #b7791f;
-  --amber-soft: #fff2cf;
-  --coral: #c75a45;
-  --dark: #101817;
-  --dark-panel: #13211f;
+  /* Atrium's single palette: warm ivory surfaces, espresso structure, brass action. */
+  --ink: #1c1612;
+  --ink-soft: #5c4e40;
+  --line: #ddd2c2;
+  --line-strong: #cbbba4;
+  --surface: #fffdf9;
+  --surface-soft: #f7f1e6;
+  --surface-mist: #eee4d5;
+  --teal: #8a6425;
+  --teal-dark: #6f4d18;
+  --mint: #dcc08a;
+  --mint-soft: #f4e6c7;
+  --amber: #8a6425;
+  --amber-soft: #f8edcf;
+  --coral: #a34e3b;
+  --dark: #1a140c;
+  --dark-panel: #2a2019;
+  --glass: rgba(255, 252, 247, 0.34);
+  --glass-strong: rgba(255, 252, 247, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-highlight: rgba(255, 255, 255, 0.75);
+  --brass: #b8893d;
+  --brass-light: #dcb978;
+  --ivory: #f7f1e6;
+  --oxblood: #6f2428;
+  --espresso: #120e0b;
   --radius: 7px;
   letter-spacing: 0;
 }
@@ -6000,3 +6010,63 @@ h3,
     display: none;
   }
 }
+
+/* The dashboard follows the same materials as the new arrival sequence. This
+   intentionally sits after the legacy dashboard rules so every workflow state
+   (profile, quotes, live call, and evidence) resolves to the Atrium palette. */
+.demo-section { background: #eee5d8; }
+.demo-app, .demo-workspace { background: var(--surface); }
+.demo-sidebar { border-color: var(--line); background: #faf6ef; }
+.demo-sidebar .brand-mark { color: var(--brass); }
+
+.sidebar-case, .sidebar-user, .simulated-note, .demo-topbar, .demo-header,
+.demo-footer, .call-sheet-head, .concession-panel, .result-main,
+.outcome-summary, .concession-trail, .coverage-proof { border-color: var(--line); }
+
+.sidebar-case strong, .topbar-breadcrumb strong, .global-verification strong,
+.demo-header h2 { color: var(--ink); }
+
+.sidebar-item--current { background: #f1e7d5; color: var(--ink); }
+.sidebar-item--current::before, .sidebar-item--current .sidebar-item-icon,
+.sidebar-item--complete .sidebar-item-icon, .global-verification, .demo-footer a,
+.outcome-column--final strong, .selection-proof small { color: var(--teal); }
+
+.primary-button { border-color: var(--brass); background: var(--brass); color: #1a140c; }
+.primary-button:hover:not(:disabled) { border-color: var(--teal-dark); background: var(--teal-dark); color: #fffaf0; }
+.secondary-button { border-color: #bda77f; background: #fffaf0; color: var(--teal-dark); }
+
+.status-badge--verified, .status-badge--active {
+  border-color: #dfc995;
+  background: #fbf3df;
+  color: var(--teal-dark);
+}
+
+.target-marker, .timeline-stop--final { border-color: #e2d3b6; background: #fbf5e8; }
+
+.voice-proof, .command-panel {
+  --voice-muted: #d8c8af;
+  border-color: #493820;
+  background: #21180f;
+}
+
+.voice-proof .voice-title small, .voice-proof .audio-label small,
+.voice-proof .voice-section-title small, .voice-proof .audio-controls > span,
+.voice-proof .transcript-panel > p, .voice-proof .transcript-panel time,
+.voice-proof .replay-clip time, .voice-proof .replay-clip small,
+.voice-proof .voice-privacy span { color: var(--voice-muted); }
+
+.voice-proof .voice-shield, .voice-proof .voice-call-state,
+.voice-proof .status-badge--verified, .voice-proof .replay-play,
+.voice-proof .replay-clip em, .voice-proof .voice-privacy { color: var(--mint); }
+.voice-proof .voice-shield, .voice-proof .replay-clip,
+.voice-proof .voice-privacy { border-color: #795d32; }
+.voice-proof .replay-clip:hover, .voice-proof .replay-clip--active {
+  border-color: var(--brass);
+  background: rgba(184, 137, 61, 0.13);
+}
+.voice-proof .audio-controls button, .voice-proof .audio-progress span {
+  background: var(--brass);
+  color: #1a140c;
+}
+.demo-app button:focus-visible, .demo-app a:focus-visible,
+.demo-app input:focus-visible, .demo-app summary:focus-visible { outline-color: var(--brass); }
