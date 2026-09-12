@@ -28,7 +28,7 @@ import { Waveform } from "./Waveform.jsx";
 
 const STEP_META = {
   vehicle: { index: 1, label: "Stay profile", title: "Set up your group stay", description: "Confirm the details hotels need to return comparable group rates." },
-  calling: { index: 2, label: "Top 5 hotels", title: "StayScout is researching the market", description: "Every hotel receives the same verified group-stay request." },
+  calling: { index: 2, label: "Top 5 hotels", title: "Atrium is researching the market", description: "Every hotel receives the same verified group-stay request." },
   quotes: { index: 3, label: "Compare", title: "Five group rates, normalized", description: "Choose an offer and set the private target for the negotiation." },
   negotiating: { index: 4, label: "Negotiate", title: "Negotiator is working the selected hotel", description: "The target stays private while verified concessions are recorded." },
   result: { index: 5, label: "Final result", title: "A better group rate, with the proof", description: "Review the outcome, unchanged stay details, full call, and decisive moments." },
@@ -317,7 +317,7 @@ function QuotesView({ selectedProvider, setSelectedProvider, target, setTarget, 
       <aside className="target-panel">
         <div className="target-panel-head"><Target size={20} weight="fill" /><span><p className="section-kicker">Private negotiation goal</p><h3>Set your target</h3></span></div>
         <div className="selection-context"><span>Your selection</span><strong>{selectedQuote?.name}</strong><small>{formatCurrency(selectedQuote?.nightly)} per room / night</small></div>
-        <p>StayScout will ask for this outcome without disclosing your ceiling.</p>
+        <p>Atrium will ask for this outcome without disclosing your ceiling.</p>
         <label className="target-input"><span>$</span><input name="targetNightlyRate" aria-label="Target nightly room rate" value={target} onChange={(event) => setTarget(event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoComplete="off" /><small>/ night</small></label>
         <div className="range-presets">
           {[205, 215, 225].map((amount) => <button className={Number(target) === amount ? "preset preset--active" : "preset"} type="button" key={amount} onClick={() => setTarget(String(amount))}>${amount}</button>)}
@@ -348,7 +348,7 @@ function NegotiatingView({ priceIndex, target }) {
         <Waveform active progress={progress / 100} label="Live negotiation waveform" />
         <div className="negotiation-progress" aria-hidden="true"><motion.span initial={false} animate={{ scaleX: progress / 100 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} /></div>
         <div className="live-transcript">
-          <span>StayScout</span>
+          <span>Atrium</span>
           <p>{priceIndex < 2 ? "We have a verified competing offer with the same dates, rooms, and amenities. Can you improve this without changing the stay?" : "If the final room rate lands under the private target, our group is ready to book today."}</p>
         </div>
       </section>
@@ -412,13 +412,13 @@ function ResultView({ target, playing, audioProgress, activeClip, onToggleAudio,
 
         <section className="selection-proof">
           <div><span>Your selection</span><strong>Lakeside Grand · {formatCurrency(208)}/room/night</strong><small><CheckCircle size={14} weight="fill" /> Selected by you</small></div>
-          <div><span>StayScout recommendation</span><strong>Lakeside Grand · Best overall value</strong><small><SealCheck size={14} weight="fill" /> Recommendation matched</small></div>
+          <div><span>Atrium recommendation</span><strong>Lakeside Grand · Best overall value</strong><small><SealCheck size={14} weight="fill" /> Recommendation matched</small></div>
           <button className="secondary-button" type="button" onClick={onRestart}><ArrowCounterClockwise size={17} weight="bold" /> Replay demo</button>
         </section>
       </div>
 
       <aside className="voice-proof">
-        <header><div className="voice-title"><span className="voice-shield"><ShieldCheck size={21} weight="fill" /></span><div><strong>StayScout Negotiator</strong><small>Call evidence · STAY-CALL-0198</small></div></div><span className="voice-call-state"><CheckCircle size={13} weight="fill" /> Complete</span></header>
+        <header><div className="voice-title"><span className="voice-shield"><ShieldCheck size={21} weight="fill" /></span><div><strong>Atrium</strong><small>Call evidence · STAY-CALL-0198</small></div></div><span className="voice-call-state"><CheckCircle size={13} weight="fill" /> Complete</span></header>
         <div className="audio-player">
           <div className="audio-label"><span>Full negotiation audio</span><small>06:42</small></div>
           <Waveform active={playing} progress={audioProgress} />
@@ -584,10 +584,10 @@ export const ProductDemo = forwardRef(function ProductDemo(_, ref) {
   }
 
   return (
-    <section className="demo-section" id="demo" ref={ref} aria-label="Interactive StayScout demo">
+    <section className="demo-section" id="demo" ref={ref} aria-label="Interactive Atrium demo">
       <div className="demo-app">
         <aside className="demo-sidebar">
-          <div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>StayScout<small>Group booking operations</small></span></div>
+          <div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>Atrium<small>Group booking operations</small></span></div>
           <div className="sidebar-case"><span>Active group stay</span><strong>Chicago leadership retreat</strong><small>Request STAY-8K42</small></div>
           <p className="sidebar-label">Workflow</p>
           <nav aria-label="Demo journey">
@@ -609,7 +609,7 @@ export const ProductDemo = forwardRef(function ProductDemo(_, ref) {
         </aside>
 
         <div className="demo-workspace">
-          <div className="mobile-demo-bar"><div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>StayScout</span></div><span>Step {currentStepIndex} / 5</span></div>
+          <div className="mobile-demo-bar"><div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>Atrium</span></div><span>Step {currentStepIndex} / 5</span></div>
           <div className="demo-topbar"><div className="topbar-breadcrumb"><span>Group bookings</span><ArrowRight size={12} /><strong>Request STAY-8K42</strong></div><div className="global-verification"><SealCheck size={16} weight="fill" /><span><strong>Request verified</strong><small>12 facts · 2 sources</small></span></div></div>
           <div className="demo-content">
             <StepHeader step={step} />

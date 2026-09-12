@@ -1,5 +1,5 @@
 /**
- * Querit-backed hotel discovery + travel-aggregator rate lookup for StayScout.
+ * Querit-backed hotel discovery + travel-aggregator rate lookup for Atrium.
  * Stay params come from the remapped CarProfile (city→make, room→model, rooms→mileage).
  */
 import {

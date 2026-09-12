@@ -1,0 +1,977 @@
+/* Photoreal hotel + Liquid Glass
+   Photography: see the header comment in HotelCinematicScene.jsx for sources + licenses.
+   Geometry variables (--reception-*, --facade-*, --door-*, --screen-*, --clip-*, --dash-*)
+   are written per frame by CinematicShowcase; nothing below hard-codes a position. */
+
+.cinematic--hotel .dashboard-reveal {
+  z-index: 2;
+  clip-path: inset(var(--clip-y) var(--clip-right) var(--clip-bottom) var(--clip-x) round var(--screen-radius));
+  box-shadow: none;
+  background: #f6f1e8;
+}
+
+.cinematic--hotel .dashboard-reveal .hotel-dashboard {
+  transform: translate3d(var(--dash-x), var(--dash-y), 0) scale(var(--dash-s));
+  transform-origin: 50% 50%;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cinematic--hotel {
+    height: 100svh;
+  }
+
+  .cinematic--hotel .dashboard-reveal {
+    display: block;
+  }
+
+  .cinematic--hotel .hotel-facade,
+  .cinematic--hotel .hotel-door,
+  .cinematic--hotel .scroll-rail,
+  .cinematic--hotel .cinematic-copy--phase {
+    display: none;
+  }
+}
+
+.cinematic--hotel {
+  --facade-src: url("/assets/hotel/entrance-user-3600.jpg");
+  --facade-left: 0px;
+  --facade-top: 0px;
+  --facade-w: 100%;
+  --facade-h: 100%;
+  --facade-scale: 1;
+  --facade-opacity: 1;
+  --bloom: 0.25;
+  --door-x: 0px;
+  --door-y: 0px;
+  --door-w: 0px;
+  --door-h: 0px;
+  --door-cx: 50%;
+  --door-cy: 50%;
+  --door-angle: 0deg;
+  --lantern-1-x: 0px;
+  --lantern-1-y: 0px;
+  --lantern-2-x: 0px;
+  --lantern-2-y: 0px;
+  --lobby-left: 0px;
+  --lobby-top: 0px;
+  --lobby-w: 100%;
+  --lobby-h: 100%;
+  --lobby-scale: 1;
+  --lobby-tx: 0px;
+  --lobby-ty: 0px;
+  --haze-opacity: 1;
+  --hall-copy-1-opacity: 0;
+  --hall-copy-2-opacity: 0;
+  --hall-copy-3-opacity: 0;
+  --hall-copy-1-shift: 0px;
+  --hall-copy-2-shift: 0px;
+  --hall-copy-3-shift: 0px;
+  --expand: 0;
+  --bezel-opacity: 1;
+  --glare-opacity: 0.9;
+  --reception-copy-opacity: 0;
+  --reception-copy-shift: 0px;
+  --skip-opacity: 1;
+  --rail-opacity: 1;
+  --vignette-opacity: 0.35;
+  --scroll-progress: 0;
+  --desk-x: 0px;
+  --desk-y: 0px;
+  --desk-w: 0px;
+  --desk-h: 0px;
+  --desk-top-h: 0px;
+  --lid-x: 0px;
+  --lid-y: 0px;
+  --lid-w: 0px;
+  --lid-h: 0px;
+  --lid-r: 0px;
+  --lid-tilt: 12deg;
+  --lid-persp: 1600px;
+  --screen-persp: 1600px;
+  --hinge-x: 50%;
+  --hinge-y: 50%;
+  --glass-cx: 50%;
+  --glass-cy: 50%;
+  --glass-x: 0px;
+  --glass-y: 0px;
+  --glass-w: 0px;
+  --glass-h: 0px;
+  --screen-radius: 0px;
+  --clip-x: 0px;
+  --clip-y: 0px;
+  --clip-right: 100%;
+  --clip-bottom: 100%;
+  --dash-x: 0px;
+  --dash-y: 0px;
+  --dash-s: 1;
+  height: 760vh;
+  background: #f4eee4;
+}
+
+.cinematic--hotel .cinematic-sticky {
+  background: #0a0807;
+}
+
+.cinematic--hotel .cinematic-copy h1,
+.cinematic--hotel .cinematic-copy h2,
+.cinematic--hotel .hotel-dashboard h2,
+.cinematic--hotel .command-final-price strong {
+  font-family: "Cormorant Garamond", "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.cinematic--hotel .cinematic-copy h1 {
+  font-size: clamp(60px, 7.6vw, 104px);
+  line-height: 0.94;
+  font-weight: 500;
+}
+
+.cinematic--hotel .cinematic-copy h2 {
+  font-size: clamp(32px, 3.3vw, 46px);
+  line-height: 1.04;
+}
+
+.cinematic--hotel .scene-index,
+.cinematic--hotel .glass-kicker {
+  color: var(--brass-light);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+/* Nav wordmark inside the glass pill. */
+.brand-lockup--pill {
+  justify-self: start;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 18px;
+  height: 40px;
+  border: 0;
+  cursor: pointer;
+}
+
+.brand-lockup--pill .brand-word {
+  font-family: "Manrope", "IBM Plex Sans", sans-serif;
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  line-height: 1;
+}
+
+.cinematic--hotel .cinematic-copy--reception {
+  opacity: var(--reception-copy-opacity);
+  transform: translate3d(0, var(--reception-copy-shift), 0);
+}
+
+.cinematic--hotel .cinematic-copy--phase {
+  bottom: auto;
+  top: 16%;
+  left: 5vw;
+  will-change: opacity, transform;
+}
+
+/* Hallway beats share the reception card's position; only opacity/transform are scrubbed. */
+.hall-copy {
+  will-change: opacity, transform;
+}
+
+.hall-copy--1 { opacity: var(--hall-copy-1-opacity); transform: translate3d(0, var(--hall-copy-1-shift), 0); }
+.hall-copy--2 { opacity: var(--hall-copy-2-opacity); transform: translate3d(0, var(--hall-copy-2-shift), 0); }
+.hall-copy--3 { opacity: var(--hall-copy-3-opacity); transform: translate3d(0, var(--hall-copy-3-shift), 0); }
+
+.cinematic--hotel .hero-support {
+  color: rgba(247, 241, 230, 0.78);
+}
+
+/* --- Liquid Glass --------------------------------------------------------------------- */
+
+.showcase-nav--glass {
+  background: none;
+  padding: 18px 3.2vw;
+}
+
+.showcase-nav--glass .brand-lockup {
+  color: var(--ivory);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.showcase-nav--glass .brand-mark {
+  color: var(--brass-light);
+}
+
+.glass-pill,
+.glass-button,
+.glass-caption,
+.hotel-glass-panel,
+.hotel-glass-bar {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    inset 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 1px 2px rgba(20, 14, 8, 0.16),
+    0 14px 40px rgba(0, 0, 0, 0.18);
+}
+
+/* Nav chrome must hold its edge over the light lobby too: brighter specular, firmer outline. */
+.showcase-nav--glass .glass-pill,
+.showcase-nav--glass .glass-button {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(60, 44, 28, 0.14),
+    0 2px 6px rgba(20, 14, 8, 0.18),
+    0 14px 40px rgba(0, 0, 0, 0.16);
+}
+
+.glass-pill {
+  padding: 6px 18px;
+  border-radius: 999px;
+}
+
+.showcase-nav--glass .showcase-links {
+  gap: 4px;
+  padding: 4px;
+}
+
+.showcase-nav--glass .showcase-links button {
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: rgba(255, 251, 243, 0.86);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.showcase-nav--glass .showcase-links button:hover {
+  background: rgba(255, 252, 247, 0.22);
+  color: #fff;
+}
+
+.showcase-nav--glass .nav-login {
+  padding: 9px 16px;
+  color: rgba(255, 251, 243, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.glass-button {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  color: var(--ivory);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.glass-button:hover {
+  background: var(--glass-strong);
+}
+
+.glass-button--solid {
+  background: linear-gradient(180deg, rgba(232, 204, 148, 0.96), rgba(196, 156, 90, 0.96));
+  color: #1a140c;
+  border-color: rgba(255, 240, 205, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 10px 28px rgba(120, 84, 30, 0.32);
+}
+
+.glass-button--solid:hover {
+  background: linear-gradient(180deg, #f0d9a4, #cfa963);
+}
+
+.glass-text {
+  border: 0;
+  background: transparent;
+  color: rgba(246, 239, 226, 0.78);
+  min-height: 40px;
+  padding: 0 6px;
+  font-size: 13px;
+}
+
+.glass-text:hover {
+  color: #fff;
+}
+
+.glass-caption {
+  max-width: 440px;
+  padding: 22px 26px 24px;
+  border-radius: 24px;
+  color: var(--ivory);
+}
+
+.glass-caption--light {
+  background: rgba(255, 252, 247, 0.58);
+  border-color: rgba(255, 255, 255, 0.85);
+  color: #1c1612;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 18px 50px rgba(40, 30, 20, 0.18);
+}
+
+.glass-caption--light .glass-kicker {
+  color: #8a6425;
+}
+
+.glass-caption h2,
+.glass-caption p {
+  margin: 0;
+}
+
+.glass-caption .glass-kicker {
+  margin-bottom: 10px;
+}
+
+.glass-caption h2 + p {
+  margin-top: 12px;
+  max-width: 360px;
+  color: rgba(246, 239, 226, 0.74);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.glass-caption--light h2 + p {
+  color: rgba(28, 22, 18, 0.7);
+}
+
+.cinematic--hotel .scroll-rail {
+  padding: 8px 8px 8px 16px;
+  border-radius: 999px;
+  border: 0;
+  font: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 251, 243, 0.8);
+  cursor: pointer;
+  opacity: var(--rail-opacity);
+  /* Once the dolly starts the cue is invisible; stop it catching clicks meant for the scene. */
+  pointer-events: var(--rail-pointer, auto);
+  transition: transform 220ms ease;
+}
+
+.cinematic--hotel .scroll-rail:hover,
+.cinematic--hotel .scroll-rail:focus-visible {
+  transform: translate3d(0, -1px, 0);
+  outline: none;
+}
+
+.cinematic--hotel .scroll-rail .scroll-track {
+  display: block;
+}
+
+.cinematic--hotel .scroll-track {
+  width: 84px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 236, 196, 0.25);
+  overflow: hidden;
+}
+
+.cinematic--hotel .scroll-track i {
+  background: var(--brass-light);
+  transform: scaleX(var(--scroll-progress));
+}
+
+.cinematic--hotel .cinematic-skip {
+  border-radius: 999px;
+  background: var(--glass);
+  border-color: var(--glass-border);
+  color: var(--ivory);
+  opacity: var(--skip-opacity);
+  will-change: opacity;
+}
+
+/* --- Scene layers ---------------------------------------------------------------------- */
+
+.hotel-scene,
+.hotel-lobby,
+.hotel-screen-3d,
+.hotel-facade,
+.hotel-haze,
+.hotel-vignette {
+  position: absolute;
+  inset: 0;
+}
+
+.hotel-scene {
+  overflow: hidden;
+  background: #0a0807;
+  contain: paint;
+}
+
+.hotel-frame {
+  position: absolute;
+}
+
+/* --- Lobby: plate + desk + laptop in one layer ------------------------------------------- */
+/* The only layer that scales; origin is the laptop glass centre so the door-fit view, the
+   walk-in and the zoom into the screen are one continuous move. */
+.hotel-lobby {
+  z-index: 1;
+  transform: translate3d(var(--lobby-tx), var(--lobby-ty), 0) scale(var(--lobby-scale));
+  transform-origin: var(--glass-cx) var(--glass-cy);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.hotel-frame--lobby {
+  left: var(--lobby-left);
+  top: var(--lobby-top);
+  width: var(--lobby-w);
+  height: var(--lobby-h);
+}
+
+.hotel-plate-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+}
+
+/* --- Reception desk: honed ivory marble, brass edges, lit from the upper left ----------- */
+.hotel-desk {
+  position: absolute;
+  left: var(--desk-x);
+  top: var(--desk-y);
+  width: var(--desk-w);
+  height: var(--desk-h);
+  will-change: transform;
+}
+
+/* Top surface: a thin sliver in perspective (we stand a little above counter height). */
+.hotel-desk-top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--desk-top-h);
+  clip-path: polygon(3.5% 0, 96.5% 0, 100% 100%, 0 100%);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.35), transparent 40%, rgba(120, 100, 70, 0.12)),
+    linear-gradient(180deg, #f4ede0, #ece2d1);
+}
+
+.hotel-desk-top::after {
+  /* Brass nosing on the front edge. */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: max(2px, 8%);
+  background: linear-gradient(180deg, #e6c98f, #b8925a 60%, #7d5c2a);
+}
+
+/* Front face: honed marble built from gradients (no photo crops). */
+.hotel-desk-front {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--desk-top-h);
+  bottom: 8%;
+  background:
+    /* light from the upper left */
+    linear-gradient(100deg, rgba(255, 252, 245, 0.42), rgba(255, 252, 245, 0) 45%, rgba(90, 70, 45, 0.16) 100%),
+    /* soft veins */
+    linear-gradient(112deg, transparent 21%, rgba(168, 152, 128, 0.1) 22.6%, rgba(168, 152, 128, 0.03) 24%, transparent 27%),
+    linear-gradient(104deg, transparent 50%, rgba(150, 134, 110, 0.09) 51.5%, rgba(150, 134, 110, 0.02) 53%, transparent 56%),
+    linear-gradient(118deg, transparent 71%, rgba(168, 152, 128, 0.08) 72.5%, transparent 76%),
+    radial-gradient(ellipse 60% 80% at 30% 30%, rgba(255, 255, 255, 0.28), transparent 70%),
+    linear-gradient(180deg, #ebe2d2, #ddd1bd);
+  box-shadow:
+    inset 1px 0 0 rgba(255, 255, 255, 0.5),
+    inset -1px 0 0 rgba(90, 70, 45, 0.25);
+}
+
+/* Brass base trim over a dark lacquer plinth, sitting on the floor. */
+.hotel-desk-plinth {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8%;
+  background: linear-gradient(180deg, #e0c186 0 18%, #b8925a 18% 34%, #2a2019 34%, #120e0b 100%);
+}
+
+.hotel-desk-shadow {
+  position: absolute;
+  left: calc(var(--desk-x) - var(--desk-w) * 0.05);
+  width: calc(var(--desk-w) * 1.1);
+  top: calc(var(--desk-y) + var(--desk-h) * 0.96);
+  height: calc(var(--desk-h) * 0.16);
+  background: radial-gradient(ellipse at 50% 12%, rgba(30, 20, 10, 0.55), rgba(30, 20, 10, 0.22) 45%, transparent 78%);
+  pointer-events: none;
+}
+
+/* Reflection of the desk in the marble floor: same face, flipped, faded. */
+.hotel-desk-reflection {
+  position: absolute;
+  left: var(--desk-x);
+  width: var(--desk-w);
+  top: calc(var(--desk-y) + var(--desk-h));
+  height: calc(var(--desk-h) * 0.55);
+  transform: scaleY(-1);
+  transform-origin: 50% 0;
+  background:
+    linear-gradient(180deg, #120e0b 0 5%, #b8925a 5% 7%, transparent 7%),
+    linear-gradient(100deg, rgba(255, 252, 245, 0.42), rgba(255, 252, 245, 0) 45%, rgba(90, 70, 45, 0.16) 100%),
+    linear-gradient(180deg, #ebe2d2, #ddd1bd);
+  -webkit-mask-image: linear-gradient(180deg, transparent 10%, rgba(0, 0, 0, 0.38));
+  mask-image: linear-gradient(180deg, transparent 10%, rgba(0, 0, 0, 0.38));
+  pointer-events: none;
+}
+
+/* --- Laptop (14" MacBook-style, 16:10 glass), seated on the desk top -------------------- */
+/* The lid is a real 3D plane hinged at its bottom edge. Its perspective distance is the
+   screen-space distance divided by the lobby scale, so it projects identically to the
+   dashboard plane (.hotel-screen-3d) which uses the same hinge point in screen space. */
+.hotel-laptop-lid {
+  position: absolute;
+  left: var(--lid-x);
+  top: var(--lid-y);
+  width: var(--lid-w);
+  height: var(--lid-h);
+  border-radius: var(--lid-r) var(--lid-r) calc(var(--lid-r) * 0.4) calc(var(--lid-r) * 0.4);
+  background: linear-gradient(180deg, #1a1a1d, #0c0c0e);
+  box-shadow:
+    0 0 0 1px #8f8c87,
+    0 0 0 1.5px rgba(255, 255, 255, 0.22);
+  transform-origin: 50% 100%;
+  transform: perspective(var(--lid-persp)) rotateX(var(--lid-tilt));
+  opacity: var(--bezel-opacity);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+/* Keyboard deck seen from just above: a foreshortened trapezoid resting on the desk top. */
+.hotel-laptop-deck {
+  position: absolute;
+  left: calc(var(--lid-x) - var(--lid-w) * 0.06);
+  top: calc(var(--lid-y) + var(--lid-h) - 1px);
+  width: calc(var(--lid-w) * 1.12);
+  height: calc(var(--lid-w) * 0.11);
+  clip-path: polygon(5.4% 0, 94.6% 0, 100% 100%, 0 100%);
+  background:
+    linear-gradient(180deg, rgba(246, 240, 228, 0.35), transparent 45%), /* screen light on the deck */
+    linear-gradient(180deg, #3a3a3d 0 7%, #d9d7d2 7%, #c9c6c0 60%, #a19e98 88%, #e2e0db 88%, #b4b1ab 100%);
+  opacity: var(--bezel-opacity);
+  will-change: opacity;
+  pointer-events: none;
+}
+
+.hotel-laptop-deck::before {
+  /* Keyboard well. */
+  content: "";
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  top: 22%;
+  height: 40%;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #2c2c2f, #1b1b1d);
+  clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
+}
+
+.hotel-laptop-shadow {
+  position: absolute;
+  left: calc(var(--lid-x) - var(--lid-w) * 0.1);
+  width: calc(var(--lid-w) * 1.2);
+  top: calc(var(--lid-y) + var(--lid-h) + var(--lid-w) * 0.07);
+  height: calc(var(--lid-w) * 0.09);
+  background: radial-gradient(ellipse at 50% 30%, rgba(30, 20, 10, 0.5), rgba(30, 20, 10, 0.18) 45%, transparent 75%);
+  opacity: var(--bezel-opacity);
+  pointer-events: none;
+}
+
+/* Dashboard plane: viewport-sized, tilted about the same hinge as the lid. */
+.hotel-screen-3d {
+  z-index: 2;
+  transform-origin: var(--hinge-x) var(--hinge-y);
+  transform: perspective(var(--screen-persp)) rotateX(var(--lid-tilt));
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Glass highlight strip over the screen, in the same plane as the dashboard. */
+.hotel-glass-glare {
+  position: absolute;
+  left: var(--glass-x);
+  top: var(--glass-y);
+  width: var(--glass-w);
+  height: var(--glass-h);
+  border-radius: var(--screen-radius);
+  background: linear-gradient(112deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.03) 35%, transparent 55%, rgba(255, 255, 255, 0.05));
+  opacity: var(--glare-opacity);
+  pointer-events: none;
+  will-change: opacity;
+}
+
+
+/* --- Haze: warm light in the doorway that thins as we walk in -------------------------- */
+.hotel-haze {
+  z-index: 4;
+  opacity: var(--haze-opacity);
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 42%, rgba(255, 236, 205, 0.3), transparent 70%),
+    linear-gradient(180deg, rgba(20, 14, 8, 0.3), transparent 25%, transparent 75%, rgba(20, 14, 8, 0.28));
+  pointer-events: none;
+  will-change: opacity;
+}
+
+/* --- Facade: photo with a hole where the doors are; leaves cropped from the same photo --- */
+.hotel-facade {
+  z-index: 5;
+  opacity: var(--facade-opacity);
+  transform: scale(var(--facade-scale));
+  transform-origin: var(--door-cx) var(--door-cy);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.hotel-frame--facade {
+  left: var(--facade-left);
+  top: var(--facade-top);
+  width: var(--facade-w);
+  height: var(--facade-h);
+}
+
+/* Static mask: everything except the door opening (edges feathered by a hair). */
+.hotel-facade-photo {
+  position: absolute;
+  inset: 0;
+  background: var(--facade-src) 0 0 / 100% 100% no-repeat;
+  -webkit-mask-image:
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000);
+  -webkit-mask-size: 100% 100%, var(--door-w) var(--door-h);
+  -webkit-mask-position: 0 0, var(--door-x) var(--door-y);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-composite: xor;
+  mask-image:
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000);
+  mask-size: 100% 100%, var(--door-w) var(--door-h);
+  mask-position: 0 0, var(--door-x) var(--door-y);
+  mask-repeat: no-repeat;
+  mask-composite: exclude;
+}
+
+/* Lantern bloom that intensifies as we approach (opacity only). */
+.hotel-bloom {
+  position: absolute;
+  width: calc(var(--facade-w) * 0.16);
+  height: calc(var(--facade-w) * 0.16);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255, 214, 150, 0.55), rgba(255, 190, 110, 0.18) 40%, transparent 70%);
+  mix-blend-mode: screen;
+  opacity: var(--bloom);
+  will-change: opacity;
+}
+
+.hotel-bloom--left { left: var(--lantern-1-x); top: var(--lantern-1-y); }
+.hotel-bloom--right { left: var(--lantern-2-x); top: var(--lantern-2-y); }
+
+.hotel-doorway {
+  position: absolute;
+  left: var(--door-x);
+  top: var(--door-y);
+  width: var(--door-w);
+  height: var(--door-h);
+  perspective: 900px;
+  perspective-origin: 50% 50%;
+  transform-style: preserve-3d;
+}
+
+.hotel-door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  overflow: hidden;
+  will-change: transform;
+  backface-visibility: visible;
+}
+
+/* Leaves swing inward (away from the guest) on their outer hinges. */
+.hotel-door--left {
+  left: 0;
+  transform-origin: 0% 50%;
+  transform: rotateY(var(--door-angle));
+}
+
+.hotel-door--right {
+  right: 0;
+  transform-origin: 100% 50%;
+  transform: rotateY(calc(var(--door-angle) * -1));
+}
+
+/* Each leaf shows exactly the piece of the photo it covers when closed. */
+.hotel-door-leaf {
+  position: absolute;
+  inset: 0;
+  background: var(--facade-src) no-repeat;
+  background-size: var(--facade-w) var(--facade-h);
+}
+
+.hotel-door--left .hotel-door-leaf {
+  background-position: calc(var(--door-x) * -1) calc(var(--door-y) * -1);
+}
+
+.hotel-door--right .hotel-door-leaf {
+  background-position: calc((var(--door-x) + var(--door-w) / 2) * -1) calc(var(--door-y) * -1);
+}
+
+/* Glass darkens slightly as it turns away from the light. */
+.hotel-door-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(10, 8, 6, 0.35), rgba(10, 8, 6, 0.05));
+  opacity: calc(var(--door-angle) / 80deg * 0.9);
+}
+
+.hotel-door--right .hotel-door-shade {
+  background: linear-gradient(270deg, rgba(10, 8, 6, 0.35), rgba(10, 8, 6, 0.05));
+}
+
+.hotel-vignette {
+  z-index: 7;
+  pointer-events: none;
+  opacity: var(--vignette-opacity);
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(10, 8, 6, 0.55) 100%);
+  will-change: opacity;
+}
+
+/* --- Dashboard surfaces (Liquid Glass, ivory) ---------------------------------------- */
+
+.hotel-dashboard {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(255, 236, 200, 0.3), transparent 40%),
+    var(--command-bg, #f6f1e8);
+  color: var(--command-text, #1c1612);
+}
+
+.hotel-dashboard .full-command-topbar {
+  border-bottom-color: var(--command-line);
+  background: var(--command-topbar);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+}
+
+.hotel-dashboard .full-command-brand strong {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.hotel-dashboard .full-command-brand .brand-mark {
+  color: var(--brass);
+}
+
+.hotel-dashboard .full-command-title h2 {
+  font-size: clamp(30px, 3.6vw, 52px);
+  line-height: 1;
+}
+
+.hotel-glass-panel {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 1px 0 rgba(120, 84, 52, 0.08),
+    0 18px 40px rgba(80, 60, 30, 0.08);
+}
+
+.hotel-search-bar {
+  margin-top: clamp(16px, 2.4vh, 26px);
+  padding: 0 18px;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 1fr auto;
+  align-items: center;
+  gap: 16px;
+  border-radius: 18px;
+  color: var(--command-muted);
+  font-size: 12.5px;
+}
+
+.hotel-search-bar > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hotel-search-bar svg {
+  color: var(--brass);
+}
+
+.hotel-search-bar strong {
+  color: var(--command-accent);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hotel-stay-outcome {
+  margin-top: clamp(14px, 2vh, 22px);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.hotel-room-ledger {
+  margin-top: clamp(16px, 2.6vh, 26px);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.hotel-room-ledger header,
+.hotel-room-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.1fr 0.7fr 0.55fr 0.45fr;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.hotel-room-ledger header {
+  min-height: 40px;
+  color: var(--command-muted);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hotel-room-ledger header strong {
+  grid-column: 4 / -1;
+  justify-self: end;
+  color: var(--command-accent);
+}
+
+.hotel-room-row {
+  min-height: 48px;
+  border-top: 1px solid var(--command-line);
+  color: var(--command-muted);
+  font-size: 12.5px;
+}
+
+.hotel-room-row strong,
+.hotel-room-row b {
+  color: var(--command-heading);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.hotel-room-row em {
+  justify-self: end;
+  font-style: italic;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 15px;
+}
+
+.hotel-room-row--held {
+  background: var(--command-savings-bg);
+}
+
+.hotel-room-row--held em {
+  color: var(--command-accent);
+}
+
+@media (max-width: 860px) {
+  .cinematic--hotel {
+    --facade-src: url("/assets/hotel/entrance-user-1600.jpg");
+    height: 900vh;
+  }
+
+
+
+
+
+  .cinematic--hotel .cinematic-copy {
+    left: 6vw;
+    width: 88vw;
+  }
+
+  .brand-lockup--pill {
+    height: 36px;
+    padding: 0 14px;
+  }
+
+  .brand-lockup--pill .brand-word {
+    font-size: 13px;
+  }
+
+  .cinematic--hotel .cinematic-copy h1 {
+    font-size: 58px;
+  }
+
+  .cinematic--hotel .cinematic-copy h2 {
+    font-size: 34px;
+  }
+
+  .cinematic--hotel .cinematic-copy--phase {
+    top: 9%;
+  }
+
+  .cinematic--hotel .cinematic-copy h2 {
+    font-size: 30px;
+  }
+
+  .glass-caption {
+    padding: 18px 20px 20px;
+  }
+
+  .showcase-nav--glass {
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+  }
+
+  .showcase-nav--glass .showcase-links,
+  .showcase-nav--glass .nav-login {
+    display: none;
+  }
+
+  .cinematic--hotel .scroll-rail {
+    display: none;
+  }
+
+  .hotel-screen-label {
+    font-size: 10px;
+  }
+
+  .hotel-search-bar,
+  .hotel-room-ledger header,
+  .hotel-room-row {
+    grid-template-columns: 1fr 1fr;
+    min-height: 40px;
+    padding: 10px 14px;
+  }
+
+  .hotel-search-bar strong,
+  .hotel-room-ledger header strong,
+  .hotel-room-row span:nth-child(3),
+  .hotel-search-bar > div:last-of-type {
+    display: none;
+  }
+}

@@ -23,6 +23,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
+import { BrandMark } from "./BrandMark.jsx";
 import { api, toCarProfile } from "./api.js";
 import { HOTELS, PRICE_STEPS } from "./data.js";
 import { hotelImageFor, hotelTintFor } from "./hotelImage.js";
@@ -31,8 +32,8 @@ import { Waveform } from "./Waveform.jsx";
 
 const STEP_META = {
   vehicle: { index: 1, label: "Stay profile", title: "Set up your group stay", description: "Confirm the details hotels need to return comparable group rates." },
-  calling: { index: 2, label: "Hotels found", title: "Hotels and aggregator prices", description: "Review the properties StayScout found, then choose which ones to call." },
-  agentcalls: { index: 3, label: "Agent quotes", title: "StayScout called the hotels", description: "Every hotel came back under its public aggregator price. Listen to the calls." },
+  calling: { index: 2, label: "Hotels found", title: "Hotels and aggregator prices", description: "Review the properties Atrium found, then choose which ones to call." },
+  agentcalls: { index: 3, label: "Agent quotes", title: "Atrium called the hotels", description: "Every hotel came back under its public aggregator price. Listen to the calls." },
   quotes: { index: 4, label: "Compare", title: "Negotiated group rates, normalized", description: "Choose an offer and set the private target for the live negotiation." },
   negotiating: { index: 5, label: "Negotiate", title: "Negotiator is working the selected hotel", description: "The target stays private while verified concessions are recorded." },
   result: { index: 6, label: "Evidence", title: "A better group rate, with the proof", description: "Review the outcome, unchanged stay details, full call, and decisive moments." },
@@ -183,9 +184,9 @@ function SignupGate({ onRequireSignup }) {
     <motion.div className="vehicle-view view-enter" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
       <section className="call-sheet" style={{ display: "grid", placeItems: "center", textAlign: "center", padding: "64px 32px", gap: 18 }}>
         <span className="section-kicker">Account required</span>
-        <h3 style={{ margin: 0 }}>Create your StayScout account to start</h3>
+        <h3 style={{ margin: 0 }}>Create your Atrium account to start</h3>
         <p style={{ maxWidth: 460, color: "var(--ink-soft)" }}>
-          Sign up first, then enter your group stay details. StayScout will research hotels for your destination, collect group rates, and negotiate the best one down to your private target.
+          Sign up first, then enter your group stay details. Atrium will research hotels for your destination, collect group rates, and negotiate the best one down to your private target.
         </p>
         <button className="primary-button" type="button" onClick={onRequireSignup}>
           <UserPlus size={16} weight="bold" /> Sign up to begin
@@ -336,7 +337,7 @@ function CallingView({ calls, complete, live, onContinue, locationLabel, selecte
     <motion.div className="calling-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
       <section className="call-board" aria-live="polite" aria-busy={!complete}>
         <div className="call-board-head">
-          <div><span className="section-kicker">Querit hotel search &amp; aggregator pricing</span><h3>{complete ? "Individual hotels priced across aggregators" : `${completedCount} of ${total} hotels priced`}</h3><p>StayScout searches Querit for real hotel properties in {place}, then checks Booking, Expedia, Hotels.com, Kayak, and Tripadvisor for nightly rates. Choose the hotels you want StayScout to call.</p></div>
+          <div><span className="section-kicker">Querit hotel search &amp; aggregator pricing</span><h3>{complete ? "Individual hotels priced across aggregators" : `${completedCount} of ${total} hotels priced`}</h3><p>Atrium searches Querit for real hotel properties in {place}, then checks Booking, Expedia, Hotels.com, Kayak, and Tripadvisor for nightly rates. Choose the hotels you want Atrium to call.</p></div>
           <span className="live-indicator"><span /> {complete ? "Complete" : "Agent active"}</span>
         </div>
         <div className="progress-track" aria-hidden="true"><motion.span initial={false} animate={{ scaleX: progress / 100 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} /></div>
@@ -378,7 +379,7 @@ function CallingView({ calls, complete, live, onContinue, locationLabel, selecte
         <ol>
           <li><span className="evidence-index">01</span><span><strong>Stay search</strong>City, room count, class, and dates.</span><SourceLabel type="user">Matched</SourceLabel></li>
           <li><span className="evidence-index">02</span><span><strong>Aggregator rates</strong>Booking, Expedia, Hotels.com, Kayak, Tripadvisor.</span><SourceLabel type="declaration">Querit</SourceLabel></li>
-          <li><span className="evidence-index">03</span><span><strong>You pick the calls</strong>StayScout only calls the hotels you check.</span><SourceLabel type={chosen > 0 ? "user" : "required"}>{chosen > 0 ? `${chosen} selected` : "Select hotels"}</SourceLabel></li>
+          <li><span className="evidence-index">03</span><span><strong>You pick the calls</strong>Atrium only calls the hotels you check.</span><SourceLabel type={chosen > 0 ? "user" : "required"}>{chosen > 0 ? `${chosen} selected` : "Select hotels"}</SourceLabel></li>
         </ol>
         <div className="evidence-policy-note"><FileText size={16} /><span><strong>Evidence standard</strong>Nightly rates prefer aggregator snippets; estimates are labeled when a price cannot be parsed.</span></div>
       </aside>
@@ -421,7 +422,7 @@ function AgentCallRecording({ url, label }) {
         >
           {state === "playing" ? <Pause size={11} weight="fill" /> : <Play size={11} weight="fill" />}
         </button>
-        <Waveform active={state === "playing"} compact progress={progress} playedColor="#71e0c1" unplayedColor="rgba(213, 226, 221, 0.22)" label={`${label} negotiation waveform`} />
+        <Waveform active={state === "playing"} compact progress={progress} playedColor="#b8893d" unplayedColor="rgba(92, 78, 64, 0.22)" label={`${label} negotiation waveform`} />
         <small>{state === "playing" ? "Playing" : url ? "Call recording" : "Recording unavailable"}</small>
       </div>
       <audio
@@ -448,7 +449,7 @@ function AgentCallsLoadingView({ hotels, locationLabel }) {
         <div className="call-board-head">
           <div>
             <span className="section-kicker">Calling hotels</span>
-            <h3>StayScout is calling the hotels</h3>
+            <h3>Atrium is calling the hotels</h3>
             <p>Group rates are coming back for {place}. This page opens when every call is finished.</p>
           </div>
           <span className="live-indicator"><span /> {hotels.length} {hotels.length === 1 ? "call" : "calls"} in progress</span>
@@ -470,7 +471,7 @@ function AgentCallsLoadingView({ hotels, locationLabel }) {
       <aside className="research-evidence">
         <p className="section-kicker">What is happening</p>
         <h3>No live hotel call yet</h3>
-        <p>StayScout is asking each hotel for a group rate on the same dates, rooms, and inclusions.</p>
+        <p>Atrium is asking each hotel for a group rate on the same dates, rooms, and inclusions.</p>
         <ol>
           <li><span className="evidence-index">01</span><span><strong>Group rate</strong>Targeted 10–18% under the best aggregator price.</span><SourceLabel type="declaration">In progress</SourceLabel></li>
           <li><span className="evidence-index">02</span><span><strong>Call recording</strong>Each finished call is saved before this screen advances.</span><SourceLabel type="declaration">Recording</SourceLabel></li>
@@ -491,7 +492,7 @@ function AgentCallsView({ agentCalls, locationLabel, onContinue, busy }) {
         <div className="call-board-head">
           <div>
             <span className="section-kicker">First-round agent calls</span>
-            <h3>StayScout called {agentCalls.length} {agentCalls.length === 1 ? "hotel" : "hotels"} and got quotes</h3>
+            <h3>Atrium called {agentCalls.length} {agentCalls.length === 1 ? "hotel" : "hotels"} and got quotes</h3>
             <p>Each hotel was asked for a group rate on identical dates, room counts, and inclusions. Every quote came back below the best public aggregator price.</p>
           </div>
           <span className="live-indicator"><span /> {agentCalls.length} calls complete</span>
@@ -553,13 +554,13 @@ function AgentCallsView({ agentCalls, locationLabel, onContinue, busy }) {
       <aside className="research-evidence">
         <p className="section-kicker">How these quotes were reached</p>
         <h3>First round, no target disclosed</h3>
-        <p>StayScout opened with the public aggregator rate, confirmed the block size, and asked for a group tier.</p>
+        <p>Atrium opened with the public aggregator rate, confirmed the block size, and asked for a group tier.</p>
         <ol>
           <li><span className="evidence-index">01</span><span><strong>Anchored on public price</strong>The aggregator rate opened every call.</span><SourceLabel type="declaration">Querit</SourceLabel></li>
           <li><span className="evidence-index">02</span><span><strong>Block size leverage</strong>{agentCalls[0]?.rooms ?? 24} rooms across {agentCalls[0]?.nights ?? 3} nights.</span><SourceLabel type="user">Confirmed</SourceLabel></li>
           <li><span className="evidence-index">03</span><span><strong>Ceiling stayed hidden</strong>No target or budget was shared.</span><SourceLabel type="hidden">Private</SourceLabel></li>
         </ol>
-        <div className="evidence-policy-note"><WarningCircle size={16} /><span><strong>Next step</strong>Pick a hotel and StayScout will negotiate the rate live.</span></div>
+        <div className="evidence-policy-note"><WarningCircle size={16} /><span><strong>Next step</strong>Pick a hotel and Atrium will negotiate the rate live.</span></div>
       </aside>
     </motion.div>
   );
@@ -595,7 +596,7 @@ function QuotesView({
     <motion.div className="quotes-layout" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
       <section className="quote-comparison">
         <div className="comparison-head">
-          <div><span className="section-kicker">Agent-negotiated group rates</span><h3>Pick the hotel to negotiate live</h3><p>These are the quotes StayScout brought back from the first-round calls. Choose one and set a private target — the negotiator will then call it live.</p></div>
+          <div><span className="section-kicker">Agent-negotiated group rates</span><h3>Pick the hotel to negotiate live</h3><p>These are the quotes Atrium brought back from the first-round calls. Choose one and set a private target — the negotiator will then call it live.</p></div>
           <details className="evidence-drawer">
             <summary><FileText size={15} /> Evidence index <span>{rows.length * 4}</span></summary>
             <div><strong>Rate evidence</strong><p>Querit hotel discovery, aggregator price snippets, and the first-round agent call for each hotel.</p></div>
@@ -623,13 +624,13 @@ function QuotesView({
       <aside className="target-panel">
         <div className="target-panel-head"><Target size={20} weight="fill" /><span><p className="section-kicker">Private negotiation goal</p><h3>Set your target</h3></span></div>
         <div className="selection-context"><span>Negotiating with</span><strong>{selectedCall?.name ?? "Select a hotel"}</strong><small>Agent quote {formatCurrency(selectedCall?.agentQuote)} / night · {selectedCall?.savedPct ?? 0}% already saved</small></div>
-        <p>StayScout will push below the first-round quote without disclosing your ceiling. The other quotes stay available as leverage.</p>
+        <p>Atrium will push below the first-round quote without disclosing your ceiling. The other quotes stay available as leverage.</p>
         <label className="target-input"><span>$</span><input name="targetNightlyRate" aria-label="Target nightly room rate" value={target} onChange={(event) => setTarget(event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoComplete="off" /><small>/ night</small></label>
         <div className="range-presets">
           {presets.map((amount) => <button className={Number(target) === amount ? "preset preset--active" : "preset"} type="button" key={amount} onClick={() => setTarget(String(amount))}>${amount.toLocaleString()}</button>)}
         </div>
         <div className="privacy-confirm"><SourceLabel type="hidden">Hidden from hotel</SourceLabel><span>Only the negotiator uses this threshold.</span></div>
-        {liveAvailable && <p className="disclosure" style={{ margin: "4px 0 0" }}>StayScout will place an in-app voice call so you can negotiate live with hotel sales.</p>}
+        {liveAvailable && <p className="disclosure" style={{ margin: "4px 0 0" }}>Atrium will place an in-app voice call so you can negotiate live with hotel sales.</p>}
         {error && <div className="disclosure-rule" role="alert" style={{ borderColor: "var(--coral)", color: "var(--coral)" }}><WarningCircle size={16} weight="fill" /><span>{error}</span></div>}
         <button className="primary-button primary-button--wide" type="button" onClick={onNegotiate} disabled={busy || !selectedCall}>{busy ? <><SpinnerGap className="spin" size={17} weight="bold" /> Starting…</> : liveAvailable ? <>Call me &amp; negotiate <PhoneCall size={17} weight="fill" /></> : <>Negotiate selected rate <PhoneCall size={17} weight="fill" /></>}</button>
       </aside>
@@ -656,7 +657,7 @@ function NegotiatingView({ steps, priceIndex, target, providerName }) {
         <Waveform active progress={progress / 100} label="Live negotiation waveform" />
         <div className="negotiation-progress" aria-hidden="true"><motion.span initial={false} animate={{ scaleX: progress / 100 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} /></div>
         <div className="live-transcript">
-          <span>StayScout</span>
+          <span>Atrium</span>
           <p>{priceIndex < 2 ? "We have a verified competing offer with the same dates, rooms, and amenities. Can you improve this without changing the stay?" : "If the final room rate lands under the private target, our group is ready to book today."}</p>
         </div>
       </section>
@@ -731,12 +732,12 @@ function ResultView({ negotiation, stay, playing, audioProgress, activeClip, rep
       </div>
 
       <aside className="voice-proof">
-        <header><div className="voice-title"><span className="voice-shield"><ShieldCheck size={21} weight="fill" /></span><div><strong>StayScout Negotiator</strong><small>{providerName} · live call</small></div></div><span className="voice-call-state"><CheckCircle size={13} weight="fill" /> Complete</span></header>
+        <header><div className="voice-title"><span className="voice-shield"><ShieldCheck size={21} weight="fill" /></span><div><strong>Atrium</strong><small>{providerName} · live call</small></div></div><span className="voice-call-state"><CheckCircle size={13} weight="fill" /> Complete</span></header>
         {negotiation.recordingUrl && <RecordingPlayer url={negotiation.recordingUrl} />}
         {negotiation.callSummary && (
           <div className="transcript-panel">
             <div className="voice-section-title"><span>Call summary</span><small><FileText size={13} weight="fill" /> From this call</small></div>
-            <p style={{ display: "block", margin: "10px 0 0", color: "#bdccc8", fontSize: 11, lineHeight: 1.65 }}>{negotiation.callSummary}</p>
+            <p style={{ display: "block", margin: "10px 0 0", color: "#d8c8af", fontSize: 11, lineHeight: 1.65 }}>{negotiation.callSummary}</p>
           </div>
         )}
         <div className="transcript-panel">
@@ -747,7 +748,7 @@ function ResultView({ negotiation, stay, playing, audioProgress, activeClip, rep
               <span><strong>{line.speaker}:</strong> {line.text}</span>
             </p>
           )) : (
-            <p style={{ display: "block", margin: "10px 0 0", color: "#bdccc8", fontSize: 11, lineHeight: 1.65 }}>No lines were captured from this call.</p>
+            <p style={{ display: "block", margin: "10px 0 0", color: "#d8c8af", fontSize: 11, lineHeight: 1.65 }}>No lines were captured from this call.</p>
           )}
         </div>
 
@@ -797,7 +798,7 @@ function LiveNegotiationPanel({ negotiation }) {
         </div>
         <Waveform active progress={0.5} label="In-app call waveform" />
         <div className="live-transcript">
-          <span>{latest ? latest.speaker : "StayScout"}</span>
+          <span>{latest ? latest.speaker : "Atrium"}</span>
           <p>{latest ? latest.text : "Answer the call and role-play hotel sales — the agent negotiates your nightly group rate."}</p>
         </div>
       </section>
@@ -1157,10 +1158,10 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
   const activeStay = `${profile.location || profile.make} · ${profile.rooms || profile.mileage} rooms`.trim();
 
   return (
-    <section className="demo-section" id="demo" ref={ref} aria-label="Interactive StayScout demo">
+    <section className="demo-section" id="demo" ref={ref} aria-label="Interactive Atrium demo">
       <div className="demo-app">
         <aside className="demo-sidebar">
-          <div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>StayScout<small>Group booking operations</small></span></div>
+          <div className="brand-lockup brand-lockup--dark"><BrandMark /><span>Atrium<small>Private arrivals</small></span></div>
           <div className="sidebar-case"><span>Active group stay</span><strong>{activeStay}</strong><small>Case STAY-8K42</small></div>
           <p className="sidebar-label">Workflow</p>
           <nav aria-label="Demo journey">
@@ -1182,7 +1183,7 @@ export const ProductDemo = forwardRef(function ProductDemo({ account, onRequireS
         </aside>
 
         <div className="demo-workspace">
-          <div className="mobile-demo-bar"><div className="brand-lockup brand-lockup--dark"><span className="brand-mark" aria-hidden="true" /><span>StayScout</span></div><span>Step {currentStepIndex} / {TOTAL_STEPS}</span></div>
+          <div className="mobile-demo-bar"><div className="brand-lockup brand-lockup--dark"><BrandMark /><span>Atrium</span></div><span>Step {currentStepIndex} / {TOTAL_STEPS}</span></div>
           <div className="demo-topbar"><div className="topbar-breadcrumb"><span>Group bookings</span><ArrowRight size={12} /><strong>Request STAY-8K42</strong></div><div className="global-verification"><SealCheck size={16} weight="fill" /><span><strong>{account ? "Request verified" : "Sign up to begin"}</strong><small>{account ? "12 facts · 2 sources" : "No account yet"}</small></span></div></div>
           <div className="demo-content">
             <StepHeader step={viewStep} />

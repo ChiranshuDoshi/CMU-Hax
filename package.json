@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "PolicyScout — AI insurance quote-shopping & negotiation platform.",
+  "description": "Atrium — private hotel arrivals and group-rate negotiation.",
   "engines": {
     "node": ">=20"
   },

@@ -1,7 +1,7 @@
 /**
- * Simulated first-round agent calls for the StayScout demo.
+ * Simulated first-round agent calls for the Atrium demo.
  *
- * After the user picks which hotels to call, StayScout "phones" each one and
+ * After the user picks which hotels to call, Atrium "phones" each one and
  * comes back with a negotiated group rate below the best aggregator price. No
  * real call is placed here — the quote is derived deterministically from the
  * hotel id so a given hotel always returns the same number, and the dialogue is
@@ -45,7 +45,7 @@ export interface AgentCallView {
   hotelVoice: string;
 }
 
-/** Hotel-rep voices. StayScout stays on `rex` so each call sounds like a new person. */
+/** Hotel-rep voices. Atrium stays on `rex` so each call sounds like a new person. */
 export const HOTEL_REP_VOICES = ["eve", "ara", "sal", "leo"] as const;
 
 /** Stable 0–1 value derived from a hotel id, so rates never jitter. */
@@ -104,7 +104,7 @@ export function buildAgentCallScript(input: {
     },
     {
       speaker: "agent",
-      text: `Hi, this is StayScout calling on behalf of a group organizer. We need ${input.rooms} ${room} rooms for ${input.nights} nights. ${input.aggregatorName} is showing ${spokenDollars(input.aggregatorLowCents)} per night. What can you do for a block that size?`,
+      text: `Hi, this is Atrium calling on behalf of a group organizer. We need ${input.rooms} ${room} rooms for ${input.nights} nights. ${input.aggregatorName} is showing ${spokenDollars(input.aggregatorLowCents)} per night. What can you do for a block that size?`,
     },
     {
       speaker: "hotel",

@@ -90,9 +90,9 @@ export const REPLAY_CLIPS = [
 ];
 
 export const TRANSCRIPT = [
-  { time: "05:02", speaker: "StayScout", text: "Thank you for reviewing our group booking request." },
+  { time: "05:02", speaker: "Atrium", text: "Thank you for reviewing our group booking request." },
   { time: "05:10", speaker: "Hotel sales", text: "I can include the daily breakfast package for your group." },
   { time: "05:36", speaker: "Hotel sales", text: "That brings the final group rate to $208 per room, per night." },
-  { time: "05:41", speaker: "StayScout", text: "That is within our target. The room count and amenities are unchanged, correct?" },
+  { time: "05:41", speaker: "Atrium", text: "That is within our target. The room count and amenities are unchanged, correct?" },
   { time: "05:45", speaker: "Hotel sales", text: "Correct. The dates, rooms, and included facilities remain unchanged." },
 ];

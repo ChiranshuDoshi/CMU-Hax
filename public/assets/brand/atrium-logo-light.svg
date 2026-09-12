@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="480" viewBox="0 0 1600 480" role="img" aria-labelledby="title desc">
+  <title id="title">Atrium logo on a light background</title>
+  <desc id="desc">Minimal Atrium hotel booking wordmark for light placements.</desc>
+  <rect x="40" y="118" width="1520" height="244" rx="18" fill="#F5F0E6"/>
+  <rect x="40" y="118" width="1520" height="244" rx="18" fill="none" stroke="#B97D35" stroke-opacity="0.82" stroke-width="2"/>
+  <g transform="translate(130 164)">
+    <path d="M0 154 70 0l70 154M27 94h86" fill="none" stroke="#A56B28" stroke-width="13" stroke-linecap="square" stroke-linejoin="miter"/>
+  </g>
+  <text x="360" y="264" fill="#172128" font-family="Helvetica Neue, Arial, sans-serif" font-size="134" font-weight="500" letter-spacing="-3">Atrium</text>
+</svg>

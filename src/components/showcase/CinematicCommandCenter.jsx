@@ -46,8 +46,8 @@ export function CarCommandCenter({ style }) {
     <div className="car-command-center" style={style} aria-hidden="true">
       <header className="car-command-head">
         <div>
-          <span className="car-command-mark">SS</span>
-          <strong>StayScout</strong>
+          <span className="car-command-mark">A</span>
+          <strong>Atrium</strong>
         </div>
         <span className="car-command-live"><i /> Negotiation complete</span>
         <LockKey size={14} weight="fill" />
@@ -98,7 +98,7 @@ export function FullCommandCenter({ contentOpacity = 1, style, themeProgress = 0
       <header className="full-command-topbar">
         <div className="full-command-brand">
           <span className="brand-mark" aria-hidden="true" />
-          <div><strong>StayScout</strong><small>Group booking</small></div>
+          <div><strong>Atrium</strong><small>Group booking</small></div>
         </div>
         <div className="full-command-path"><span>Quotes</span><i /> <strong>Negotiation result</strong></div>
         <div className="full-command-verified"><SealCheck size={17} weight="fill" /> Verified evidence</div>
