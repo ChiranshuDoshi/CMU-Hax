@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SpinnerGap, X } from "@phosphor-icons/react";
+import { BrandMark } from "./BrandMark.jsx";
 import { CinematicShowcase } from "./CinematicShowcase.jsx";
 import { ProductDemo } from "./ProductDemo.jsx";
 import { api } from "./api.js";
@@ -42,12 +43,12 @@ function SignupModal({ open, onClose, onSignedUp }) {
           <X size={20} weight="bold" />
         </button>
         <div className="brand-lockup brand-lockup--dark">
-          <span className="brand-mark" aria-hidden="true" />
-          <span>PolicyScout</span>
+          <BrandMark />
+          <span>Atrium</span>
         </div>
-        <p className="eyebrow">Create your account</p>
-        <h2 id="login-title">Sign up to start negotiating</h2>
-        <p className="modal-copy">Create a PolicyScout workspace, then enter your vehicle to run the live demo.</p>
+        <p className="eyebrow">Private arrivals</p>
+        <h2 id="login-title">Leave your name</h2>
+        <p className="modal-copy">The desk will hold the suite, then open the evening for these dates.</p>
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
             Full name
@@ -55,7 +56,7 @@ function SignupModal({ open, onClose, onSignedUp }) {
           </label>
           <label>
             Email
-            <input name="email" type="email" defaultValue="alex@policyscout.demo" autoComplete="email" spellCheck="false" required />
+            <input name="email" type="email" defaultValue="alex@atrium.demo" autoComplete="email" spellCheck="false" required />
           </label>
           {error && <p className="disclosure" role="alert" style={{ color: "var(--coral)" }}>{error}</p>}
           <button className="primary-button primary-button--wide" type="submit" disabled={busy}>

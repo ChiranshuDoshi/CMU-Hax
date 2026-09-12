@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import "@/components/showcase/styles.css";
 
 export const metadata = {
-  title: "PolicyScout",
-  description: "PolicyScout — AI insurance quote-shopping and negotiation",
+  title: "Atrium",
+  description: "Atrium — a private New York arrival. The suite is already held.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
