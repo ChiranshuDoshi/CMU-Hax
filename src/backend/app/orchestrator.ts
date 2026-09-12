@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { capabilities } from "@/config/env";
 import { MockResearchProvider, rankResearchResult } from "@/domain/research";
+import { QueritResearchProvider } from "@/integrations/querit";
 import { TavilyResearchProvider } from "@/integrations/tavily";
 import {
   QuoteCollectionService,
@@ -29,6 +30,7 @@ import {
   NegotiationCallError,
   type ConversationSnapshot,
   type NegotiationCredential,
+  type NegotiatorSessionVars,
 } from "./negotiation-call";
 import {
   touch,
@@ -69,25 +71,42 @@ export async function runResearch(workflow: WorkflowState, profile: CarProfile):
   const evaluatedAt = new Date().toISOString();
   const caps = capabilities();
 
-  let ranking: ProviderRankingResult;
+  let ranking: ProviderRankingResult | null = null;
   let live = false;
-  if (caps.hasTavily) {
+
+  if (caps.hasQuerit) {
     try {
-      const provider = new TavilyResearchProvider({ apiKey: process.env.TAVILY_API_KEY });
-      const result = await provider.research({ quoteRequest: request, retrievedAt: evaluatedAt });
+      const result = await new QueritResearchProvider({
+        apiKey: process.env.QUERIT_API_KEY,
+        baseUrl: process.env.QUERIT_BASE_URL,
+      }).research({ quoteRequest: request, retrievedAt: evaluatedAt });
       const ranked = rankResearchResult(request, result, evaluatedAt);
       if (ranked.selected.length === 5) {
         ranking = ranked;
         live = true;
-      } else {
-        ranking = await mockRanking(request, evaluatedAt);
       }
     } catch {
-      ranking = await mockRanking(request, evaluatedAt);
+      /* fall through */
     }
-  } else {
-    ranking = await mockRanking(request, evaluatedAt);
   }
+
+  if (!ranking && caps.hasTavily) {
+    try {
+      const result = await new TavilyResearchProvider({ apiKey: process.env.TAVILY_API_KEY }).research({
+        quoteRequest: request,
+        retrievedAt: evaluatedAt,
+      });
+      const ranked = rankResearchResult(request, result, evaluatedAt);
+      if (ranked.selected.length === 5) {
+        ranking = ranked;
+        live = true;
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
+  if (!ranking) ranking = await mockRanking(request, evaluatedAt);
 
   workflow.profile = profile as unknown as Record<string, unknown>;
   workflow.confirmedRequest = request;
@@ -327,25 +346,42 @@ export function negotiate(
   touch(workflow);
 }
 
-// ── Live negotiation call (ElevenLabs over Twilio) ──────────────────────────
+// ── Live negotiation call (Grok Voice in-browser) ───────────────────────────
+function buildNegotiatorVars(
+  account: Account,
+  selected: QuoteView,
+  originalCents: number,
+): NegotiatorSessionVars {
+  const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  // Provider-safe context only — the private target is never sent.
+  return {
+    userDisplayName: account.displayName,
+    providerName: selected.providerName,
+    policyPeriodCost: money(originalCents),
+    monthlyCost: money(Math.round(originalCents / 12)),
+    verifiedComparableMonthly: "not available",
+    allowedLeverageText: "No verified comparable quote is available; do not cite competitor pricing.",
+    coverageSummary:
+      "Bodily injury 100/300, collision and comprehensive with a $500 deductible. Keep all coverage unchanged.",
+    quoteDisclaimer: "This simulated quote is non-binding and requires human verification.",
+  };
+}
+
 function buildDynamicVariables(
   account: Account,
   selected: QuoteView,
   originalCents: number,
 ): Record<string, string | number | boolean> {
-  const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-  // These names must match the negotiator agent's prompt template exactly, or the
-  // agent has no price context and breaks character. The private target is never sent.
+  const vars = buildNegotiatorVars(account, selected, originalCents);
   return {
-    user_display_name: account.displayName,
-    selected_provider_name: selected.providerName,
-    policy_period_effective_cost: money(originalCents),
-    derived_monthly_effective_cost: money(Math.round(originalCents / 12)),
-    verified_comparable_monthly_effective_cost: "not available",
-    allowed_leverage_text: "No verified comparable quote is available; do not cite competitor pricing.",
-    coverage_summary:
-      "Bodily injury 100/300, collision and comprehensive with a $500 deductible. Keep all coverage unchanged.",
-    quote_disclaimer: "This simulated quote is non-binding and requires human verification.",
+    user_display_name: vars.userDisplayName,
+    selected_provider_name: vars.providerName,
+    policy_period_effective_cost: vars.policyPeriodCost,
+    derived_monthly_effective_cost: vars.monthlyCost,
+    verified_comparable_monthly_effective_cost: vars.verifiedComparableMonthly,
+    allowed_leverage_text: vars.allowedLeverageText,
+    coverage_summary: vars.coverageSummary,
+    quote_disclaimer: vars.quoteDisclaimer,
     simulated: true,
     requires_human_verification: true,
   };
@@ -358,8 +394,8 @@ export interface StartNegotiationCallResult {
 
 /**
  * Begins an in-app voice negotiation on the selected (default: lowest) quote:
- * issues the browser voice credential and moves the negotiation to a "ringing"
- * state. The browser answers the call and talks to the ElevenLabs agent directly.
+ * issues a Grok Voice ephemeral credential and moves the negotiation to a
+ * "ringing" state. The browser answers and talks to Grok directly.
  */
 export async function startNegotiationCall(
   workflow: WorkflowState,
@@ -376,7 +412,7 @@ export async function startNegotiationCall(
   const dynamicVariables = buildDynamicVariables(account, selected, originalCents);
   let credential: NegotiationCredential;
   try {
-    credential = await issueNegotiationCredential();
+    credential = await issueNegotiationCredential(buildNegotiatorVars(account, selected, originalCents));
   } catch (cause) {
     if (cause instanceof NegotiationCallError) throw new AppError(cause.code, cause.message, cause.status);
     throw cause;
@@ -408,15 +444,78 @@ export async function startNegotiationCall(
   return { credential, dynamicVariables };
 }
 
-/** Records the ElevenLabs conversation id once the browser call connects. */
+/** Records the Grok Voice session id once the browser call connects. */
 export function attachConversation(workflow: WorkflowState, conversationId: string): void {
   const negotiation = workflow.negotiation;
   if (!negotiation || negotiation.mode !== "live") {
     throw new AppError("NO_ACTIVE_CALL", "No live negotiation call is in progress.");
   }
   negotiation.conversationId = conversationId;
-  negotiation.callStatus = "in_progress";
+  if (negotiation.callStatus !== "completed" && negotiation.callStatus !== "failed") {
+    negotiation.callStatus = "in_progress";
+  }
   negotiation.errorMessage = null;
+  touch(workflow);
+}
+
+export interface ClientCallTranscriptLine {
+  role: "user" | "agent";
+  message: string;
+  timeInCallSecs?: number;
+}
+
+/**
+ * Finalizes a live Grok Voice call from the browser-collected transcript
+ * (Grok has no ElevenLabs-style server conversation fetch for this demo).
+ */
+export function completeNegotiationCall(
+  workflow: WorkflowState,
+  input: { transcript?: ClientCallTranscriptLine[]; summary?: string | null },
+): void {
+  const negotiation = workflow.negotiation;
+  if (!negotiation || negotiation.mode !== "live") {
+    throw new AppError("NO_ACTIVE_CALL", "No live negotiation call is in progress.");
+  }
+  if (negotiation.callStatus === "completed") return;
+
+  const snapshot: ConversationSnapshot = {
+    phase: "completed",
+    transcript: (input.transcript ?? [])
+      .filter((entry) => entry.message.trim().length > 0)
+      .map((entry, index) => ({
+        role: entry.role,
+        message: entry.message.trim(),
+        timeInCallSecs: entry.timeInCallSecs ?? index * 8,
+      })),
+    summary: input.summary?.trim() || negotiation.callSummary,
+    hasAudio: false,
+    dataCollection: {},
+  };
+
+  negotiation.transcript = snapshot.transcript.map((entry) => ({
+    time: secondsToClock(entry.timeInCallSecs),
+    speaker: entry.role === "agent" ? "PolicyScout" : negotiation.providerName,
+    text: entry.message,
+  }));
+
+  const finalCents =
+    negotiation.recordedFinalCents ??
+    deriveFinalCents(negotiation.originalCents, negotiation.targetAmountCents, snapshot);
+  const savingsCents = Math.max(0, negotiation.originalCents - finalCents);
+  negotiation.finalCents = finalCents;
+  negotiation.savingsCents = savingsCents;
+  negotiation.savingsPct =
+    negotiation.originalCents > 0 ? Math.round((savingsCents / negotiation.originalCents) * 1000) / 10 : 0;
+  negotiation.targetMet = finalCents <= negotiation.targetAmountCents;
+  negotiation.steps = buildLiveSteps(negotiation.originalCents, finalCents, snapshot);
+  negotiation.callStatus = "completed";
+  negotiation.recordingAvailable = false;
+  negotiation.callSummary = snapshot.summary;
+  negotiation.errorMessage = null;
+  if (negotiation.transcript.length === 0) {
+    negotiation.transcript = buildTranscript(negotiation.providerName, finalCents, negotiation.targetMet);
+  }
+  workflow.stage = "result";
   touch(workflow);
 }
 
@@ -502,58 +601,35 @@ function buildLiveSteps(originalCents: number, finalCents: number, snapshot: Con
   return steps;
 }
 
-/** Polls a live negotiation call, finalizing the result when the call ends. */
+/**
+ * Polls a live negotiation. With Grok Voice the browser finalizes via
+ * completeNegotiationCall; this only refreshes in-progress state.
+ */
 export async function pollNegotiation(workflow: WorkflowState): Promise<boolean> {
   const negotiation = workflow.negotiation;
-  if (!negotiation || negotiation.mode !== "live" || !negotiation.conversationId) return false;
+  if (!negotiation || negotiation.mode !== "live") return false;
   if (negotiation.callStatus === "completed" || negotiation.callStatus === "failed") return false;
+  if (!negotiation.conversationId) return false;
 
-  let snapshot: ConversationSnapshot;
+  // Keep the UI in "processing" after hangup until completeNegotiationCall lands.
+  if (negotiation.callStatus === "in_progress" || negotiation.callStatus === "processing") {
+    touch(workflow);
+    return true;
+  }
+
+  // Legacy path (unused for Grok): attempt a server conversation fetch.
   try {
-    snapshot = await fetchConversation(negotiation.conversationId);
+    const snapshot = await fetchConversation(negotiation.conversationId);
+    if (snapshot.phase === "completed") {
+      completeNegotiationCall(workflow, {
+        transcript: snapshot.transcript,
+        summary: snapshot.summary,
+      });
+    }
   } catch (cause) {
     negotiation.errorMessage = cause instanceof Error ? cause.message : "Could not read call status";
     touch(workflow);
-    return true;
   }
-
-  negotiation.transcript = snapshot.transcript.map((entry) => ({
-    time: secondsToClock(entry.timeInCallSecs),
-    speaker: entry.role === "agent" ? negotiation.providerName : "You",
-    text: entry.message,
-  }));
-  negotiation.errorMessage = null;
-
-  if (snapshot.phase === "in_progress" || snapshot.phase === "processing") {
-    negotiation.callStatus = snapshot.phase;
-    touch(workflow);
-    return true;
-  }
-  if (snapshot.phase === "failed") {
-    negotiation.callStatus = "failed";
-    negotiation.errorMessage = "The negotiation call did not complete.";
-    touch(workflow);
-    return true;
-  }
-
-  // Call completed — prefer the agent-recorded price, else derive it.
-  const finalCents =
-    negotiation.recordedFinalCents ??
-    deriveFinalCents(negotiation.originalCents, negotiation.targetAmountCents, snapshot);
-  const savingsCents = Math.max(0, negotiation.originalCents - finalCents);
-  negotiation.finalCents = finalCents;
-  negotiation.savingsCents = savingsCents;
-  negotiation.savingsPct = negotiation.originalCents > 0 ? Math.round((savingsCents / negotiation.originalCents) * 1000) / 10 : 0;
-  negotiation.targetMet = finalCents <= negotiation.targetAmountCents;
-  negotiation.steps = buildLiveSteps(negotiation.originalCents, finalCents, snapshot);
-  negotiation.callStatus = "completed";
-  negotiation.recordingAvailable = snapshot.hasAudio;
-  negotiation.callSummary = snapshot.summary;
-  if (negotiation.transcript.length === 0) {
-    negotiation.transcript = buildTranscript(negotiation.providerName, finalCents, negotiation.targetMet);
-  }
-  workflow.stage = "result";
-  touch(workflow);
   return true;
 }
 

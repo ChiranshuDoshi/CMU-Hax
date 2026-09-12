@@ -18,7 +18,7 @@ function clientIp(request: Request): string | null {
   return forwarded || request.headers.get("x-real-ip")?.trim() || null;
 }
 
-/** Begins an in-app voice negotiation and returns the browser voice credential. */
+/** Begins an in-app Grok Voice negotiation and returns the browser credential. */
 export async function POST(request: Request): Promise<Response> {
   try {
     const { account, workflow } = await requireContext();

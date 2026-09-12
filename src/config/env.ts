@@ -8,7 +8,7 @@ import { z } from "zod";
  * `hasX` flags below let services decide mock-vs-live without re-reading env.
  *
  * Server-only secrets (never exposed to the browser): SUPABASE_SERVICE_ROLE_KEY,
- * OPENAI_API_KEY, ELEVENLABS_API_KEY, TAVILY_API_KEY, GOOGLE_PLACES_API_KEY.
+ * IFM_API_KEY, ELEVENLABS_API_KEY, XAI_API_KEY, QUERIT_API_KEY, TAVILY_API_KEY, GOOGLE_PLACES_API_KEY.
  */
 const boolish = z
   .string()
@@ -23,10 +23,16 @@ const EnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
-  OPENAI_API_KEY: z.string().optional(),
-  OPENAI_MODEL: z.string().default("gpt-4o-mini"),
+  IFM_API_KEY: z.string().optional(),
+  IFM_MODEL: z.string().default("IFM/K2-Horizon-375B-A23B"),
+  IFM_BASE_URL: z.string().url().default("https://api.ifm.ai/v1"),
 
   ELEVENLABS_API_KEY: z.string().optional(),
+  XAI_API_KEY: z.string().optional(),
+  XAI_NEGOTIATOR_VOICE: z.string().optional(),
+
+  QUERIT_API_KEY: z.string().optional(),
+  QUERIT_BASE_URL: z.string().url().default("https://api.querit.ai/v1"),
 
   TAVILY_API_KEY: z.string().optional(),
   GOOGLE_PLACES_API_KEY: z.string().optional(),
@@ -59,8 +65,10 @@ export function capabilities(env: Env = getEnv()) {
     hasSupabase: Boolean(
       env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY
     ),
-    hasOpenAI: Boolean(env.OPENAI_API_KEY),
+    hasIfm: Boolean(env.IFM_API_KEY),
     hasElevenLabs: Boolean(env.ELEVENLABS_API_KEY),
+    hasXai: Boolean(env.XAI_API_KEY),
+    hasQuerit: Boolean(env.QUERIT_API_KEY),
     hasTavily: Boolean(env.TAVILY_API_KEY),
     hasGooglePlaces: Boolean(env.GOOGLE_PLACES_API_KEY),
     demoMode: env.DEMO_MODE,

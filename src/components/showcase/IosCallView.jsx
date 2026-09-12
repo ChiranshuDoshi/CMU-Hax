@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { Microphone, MicrophoneSlash, Phone, PhoneDisconnect, SpinnerGap } from "@phosphor-icons/react";
 import { api } from "./api.js";
+import { createGrokVoiceSession } from "./grokVoiceSession.js";
 
 function formatClock(seconds) {
   const total = Math.max(0, Math.floor(seconds));
@@ -58,12 +58,7 @@ function circleButton(background) {
 const buttonColumn = { display: "flex", flexDirection: "column", alignItems: "center", gap: 10, fontSize: 13, opacity: 0.92 };
 
 export function IosCallView(props) {
-  // @elevenlabs/react requires useConversation() to run inside a ConversationProvider.
-  return (
-    <ConversationProvider>
-      <IosCall {...props} />
-    </ConversationProvider>
-  );
+  return <IosCall {...props} />;
 }
 
 function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
@@ -76,7 +71,7 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
   const endedRef = useRef(false);
   const autoEndTimerRef = useRef(null);
   const agentSummaryHistoryRef = useRef([]);
-  const conversation = useConversation();
+  const sessionRef = useRef(null);
 
   useEffect(() => {
     if (phase !== "active") return undefined;
@@ -84,30 +79,50 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
     return () => window.clearInterval(id);
   }, [phase]);
 
-  useEffect(() => () => window.clearTimeout(autoEndTimerRef.current), []);
+  useEffect(() => () => {
+    window.clearTimeout(autoEndTimerRef.current);
+    void sessionRef.current?.end();
+  }, []);
 
-  // Ends the call exactly once (button, agent close, or disconnect), then hands
-  // off to the result page via onEnded.
-  function finishCall() {
+  async function finishCall() {
     if (endedRef.current) return;
     endedRef.current = true;
     window.clearTimeout(autoEndTimerRef.current);
     setPhase("ended");
-    try { conversation.endSession?.(); } catch { /* ignore */ }
-    onEnded?.(conversationIdRef.current);
+    const session = sessionRef.current;
+    sessionRef.current = null;
+    const transcript = session ? await session.end() : [];
+    const conversationId = conversationIdRef.current || session?.getSessionId?.() || null;
+    try {
+      if (conversationId) {
+        await api.completeCall({ conversationId, transcript });
+      }
+    } catch {
+      // Poller / result path still advances from onEnded.
+    }
+    onEnded?.(conversationId);
   }
 
-  // After the agent records the confirmed deal it closes verbally; give it a
-  // moment to finish speaking, then drop the call so we advance to the result.
   function scheduleAutoEnd(delayMs = 5000) {
     if (endedRef.current || autoEndTimerRef.current) return;
-    autoEndTimerRef.current = window.setTimeout(finishCall, delayMs);
+    autoEndTimerRef.current = window.setTimeout(() => {
+      void finishCall();
+    }, delayMs);
   }
 
   async function answer() {
     if (startedRef.current) return;
     startedRef.current = true;
     setPhase("connecting");
+
+    const cred = callContext?.credential;
+    if (!cred || cred.transport !== "grok" || !cred.clientSecret) {
+      startedRef.current = false;
+      setPhase("incoming");
+      onError?.("Grok Voice is not configured for this call.");
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => track.stop());
@@ -118,17 +133,14 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
       return;
     }
 
-    const cred = callContext.credential;
-    const callbacks = {
-      dynamicVariables: callContext.dynamicVariables,
+    const session = createGrokVoiceSession({
+      credential: cred,
       clientTools: {
         get_verified_competing_quote: () => JSON.stringify({
           allowedLeverageText: "No verified comparable quote is available; do not cite competitor pricing.",
           verifiedComparableMonthlyEffectiveCost: "not available",
         }),
         record_negotiation_event: async (parameters) => {
-          // The deal is confirmed — drop the call shortly after the agent's close
-          // so it can't loop the summary.
           scheduleAutoEnd();
           try {
             await api.recordNegotiationEvent(parameters);
@@ -138,7 +150,8 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
           }
         },
       },
-      onConnect: ({ conversationId }) => {
+      onSessionId: (conversationId) => {
+        if (!conversationId || conversationIdRef.current === conversationId) return;
         conversationIdRef.current = conversationId;
         setPhase("active");
         onConnected?.(conversationId);
@@ -146,8 +159,6 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
       onMessage: ({ message, role }) => {
         if (!message) return;
         setCaptions((current) => [...current.slice(-6), { role, message }]);
-        // Backstop: if the agent repeats a long summary, it's stuck validating —
-        // conclude the call so we don't loop forever.
         if (role === "agent") {
           const normalized = message.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
           if (normalized.length > 90) {
@@ -160,31 +171,34 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
         onError?.(typeof message === "string" ? message : "The call ran into an error.");
       },
       onDisconnect: () => {
-        finishCall();
+        void finishCall();
       },
-    };
+    });
 
+    sessionRef.current = session;
     try {
-      if (cred.transport === "webrtc") {
-        await conversation.startSession({ conversationToken: cred.conversationToken, connectionType: "webrtc", ...callbacks });
-      } else {
-        await conversation.startSession({ signedUrl: cred.signedUrl, connectionType: "websocket", ...callbacks });
+      await session.start();
+      setPhase("active");
+      if (!conversationIdRef.current) {
+        conversationIdRef.current = session.getSessionId();
+        onConnected?.(conversationIdRef.current);
       }
     } catch (cause) {
       startedRef.current = false;
+      sessionRef.current = null;
       setPhase("incoming");
       onError?.(cause?.message || "Could not connect the call.");
     }
   }
 
   function hangUp() {
-    finishCall();
+    void finishCall();
   }
 
-  async function toggleMute() {
+  function toggleMute() {
     const next = !muted;
     setMuted(next);
-    try { await conversation.setMicMuted?.(next); } catch { /* best effort */ }
+    sessionRef.current?.setMuted(next);
   }
 
   const providerName = negotiation?.providerName ?? "Insurance provider";
@@ -201,7 +215,7 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
   return (
     <div style={overlayStyle} role="dialog" aria-modal="true" aria-label="PolicyScout negotiation call">
       <div>
-        <p style={{ margin: 0, opacity: 0.7, fontSize: 14, letterSpacing: 0.4 }}>PolicyScout</p>
+        <p style={{ margin: 0, opacity: 0.7, fontSize: 14, letterSpacing: 0.4 }}>PolicyScout · Grok Voice</p>
         <div style={avatarStyle} aria-hidden="true">PS</div>
         <h2 style={{ margin: "0 0 6px", fontSize: 30, fontWeight: 600 }}>PolicyScout Negotiator</h2>
         <p style={{ margin: 0, opacity: 0.82, fontSize: 16 }}>{statusText}</p>
@@ -237,7 +251,7 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
               <span>Decline</span>
             </div>
             <div style={buttonColumn}>
-              <button type="button" style={circleButton("#34c759")} onClick={answer} aria-label="Answer call"><Phone size={30} weight="fill" /></button>
+              <button type="button" style={circleButton("#34c759")} onClick={() => void answer()} aria-label="Answer call"><Phone size={30} weight="fill" /></button>
               <span>Answer</span>
             </div>
           </>

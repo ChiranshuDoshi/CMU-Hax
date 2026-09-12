@@ -106,7 +106,7 @@ Primary directories:
 - src/domain/hashing
 - src/domain/privacy
 - src/domain/state-machine
-- src/integrations/openai
+- src/integrations/ifm
 - src/integrations/supabase
 - auth APIs
 - profile APIs

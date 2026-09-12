@@ -16,6 +16,8 @@ export default defineConfig({
       { find: "@/domain/red-flags", replacement: fileURLToPath(new URL("./src/backend/market-research/domain/red-flags", import.meta.url)) },
       { find: "@/domain/research", replacement: fileURLToPath(new URL("./src/backend/market-research/domain/research", import.meta.url)) },
       { find: "@/integrations/tavily", replacement: fileURLToPath(new URL("./src/backend/market-research/integrations/tavily", import.meta.url)) },
+      { find: "@/integrations/querit", replacement: fileURLToPath(new URL("./src/backend/market-research/integrations/querit", import.meta.url)) },
+      { find: "@/integrations/ifm", replacement: fileURLToPath(new URL("./src/backend/shared/integrations/ifm", import.meta.url)) },
       { find: "@/config/insurance-lines", replacement: fileURLToPath(new URL("./src/backend/shared/config/insurance-lines", import.meta.url)) },
       { find: "@/domain/schemas", replacement: fileURLToPath(new URL("./src/backend/shared/schemas", import.meta.url)) },
       { find: "@", replacement: fileURLToPath(new URL("./src", import.meta.url)) },

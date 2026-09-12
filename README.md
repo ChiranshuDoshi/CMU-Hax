@@ -70,9 +70,16 @@ All secrets stay server-side. Do not commit `.env`, `.env.local`, generated `.ar
 | --- | --- | --- |
 | `UPSTASH_REDIS_REST_URL` | End-to-end application workflow | Required with the token below. `KV_REST_API_URL` is also supported. |
 | `UPSTASH_REDIS_REST_TOKEN` | End-to-end application workflow | Required with the URL above. `KV_REST_API_TOKEN` is also supported. Workflow records expire after seven days. |
-| `TAVILY_API_KEY` | Live provider research | Optional. The app uses deterministic mock research if it is absent or unavailable. |
-| `ELEVENLABS_API_KEY` | Voice quote collection and negotiation | Optional. Keep it server-only. Live scripts and browser voice flows may consume credits. |
-| `ELEVENLABS_NEGOTIATOR_AGENT_ID` | Live negotiation voice flow | Created by the ElevenLabs setup script. |
+| `QUERIT_API_KEY` | Live market research search | Optional. Preferred over Tavily when set. Server-only. |
+| `QUERIT_BASE_URL` | Querit API base | Optional. Defaults to `https://api.querit.ai/v1`. |
+| `TAVILY_API_KEY` | Live provider research (fallback) | Optional. Used when Querit is not configured. |
+| `IFM_API_KEY` | Optional IFM LLM (chat completions) | Server-only. OpenAI-compatible API at api.ifm.ai. |
+| `IFM_MODEL` | IFM model id | Optional. Defaults to `IFM/K2-Horizon-375B-A23B`. |
+| `IFM_BASE_URL` | IFM API base | Optional. Defaults to `https://api.ifm.ai/v1`. |
+| `XAI_API_KEY` | In-app Grok Voice negotiation | Optional. Keep it server-only. Enables the live browser negotiation call. |
+| `XAI_NEGOTIATOR_VOICE` | Grok Voice persona | Optional. Defaults to `rex` (`eve`, `ara`, `rex`, `sal`, `leo`, or a custom voice id). |
+| `ELEVENLABS_API_KEY` | Dev / quote-collection ElevenLabs flows | Optional. Keep it server-only. Not used by the main showcase negotiator. |
+| `ELEVENLABS_NEGOTIATOR_AGENT_ID` | Legacy ElevenLabs negotiation scripts | Created by the ElevenLabs setup script. |
 | `ELEVENLABS_VOICE_SMOKE_AGENT_ID` | ElevenLabs voice smoke test | Created by the ElevenLabs setup script. |
 | `ELEVENLABS_QUOTE_CALLER_AGENT_ID` | Interactive quote-collection demo | Created by the ElevenLabs setup script. |
 | `ELEVENLABS_TWILIO_PHONE_NUMBER_ID` | Local outbound-call integration test path | Needed only for the guarded Twilio route. |
