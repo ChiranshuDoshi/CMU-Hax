@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolicyScout - Negotiation Studio</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0d1513;
+        --rail: #111c19;
+        --surface: #17231f;
+        --surface-2: #1d2b27;
+        --surface-3: #22322d;
+        --line: #30423c;
+        --line-bright: #496158;
+        --text: #f2f5f0;
+        --muted: #9cadA6;
+        --mint: #73dfbb;
+        --mint-dim: #234d40;
+        --coral: #ff785f;
+        --coral-dim: #4d2c27;
+        --amber: #edc66b;
+        --blue: #7db8d2;
+        --enter: cubic-bezier(0.22, 1, 0.36, 1);
+        --move: cubic-bezier(0.25, 1, 0.5, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-width: 320px;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background:
+          linear-gradient(rgba(115, 223, 187, 0.028) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(115, 223, 187, 0.028) 1px, transparent 1px),
+          var(--bg);
+        background-size: 32px 32px;
+        color: var(--text);
+        font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid rgba(115, 223, 187, 0.42);
+        outline-offset: 2px;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 196px minmax(0, 1fr);
+      }
+
+      .side-rail {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 22px 14px;
+        border-right: 1px solid var(--line);
+        background: rgba(17, 28, 25, 0.96);
+        backdrop-filter: blur(16px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 0 7px;
+        margin-bottom: 34px;
+      }
+
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line-bright);
+        border-radius: 7px;
+        background: var(--mint);
+        color: #0a2019;
+        font: 800 12px/1 Georgia, serif;
+      }
+
+      .brand strong,
+      .brand span {
+        display: block;
+      }
+
+      .brand strong {
+        font-size: 13px;
+      }
+
+      .brand span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 9px;
+        text-transform: uppercase;
+      }
+
+      .rail-label {
+        margin: 0 7px 10px;
+        color: #71847c;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .journey {
+        display: grid;
+        gap: 5px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .journey li {
+        min-height: 40px;
+        display: grid;
+        grid-template-columns: 25px minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: 5px;
+        color: #82958d;
+        font-size: 11px;
+      }
+
+      .journey .step-dot {
+        width: 21px;
+        height: 21px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .journey li.done .step-dot {
+        border-color: var(--mint-dim);
+        background: var(--mint-dim);
+        color: var(--mint);
+      }
+
+      .journey li.active {
+        background: var(--surface-3);
+        color: var(--text);
+        box-shadow: inset 3px 0 var(--mint);
+      }
+
+      .journey li.active .step-dot {
+        border-color: var(--mint);
+        background: var(--mint);
+        color: #0c241c;
+      }
+
+      .rail-footer {
+        margin-top: auto;
+        padding: 14px 7px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .secure-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .secure-label svg {
+        width: 14px;
+        height: 14px;
+        color: var(--mint);
+      }
+
+      main {
+        min-width: 0;
+        padding: 22px clamp(18px, 3vw, 40px) 40px;
+      }
+
+      .topbar {
+        min-height: 52px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .topbar h1 {
+        margin: 0;
+        font: 600 clamp(22px, 2.6vw, 31px)/1.1 Georgia, serif;
+      }
+
+      .topbar p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .demo-badge {
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 10px;
+        border: 1px solid #704035;
+        border-radius: 999px;
+        background: var(--coral-dim);
+        color: #ffb2a2;
+        font-size: 9px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .result-console {
+        display: grid;
+        grid-template-columns: minmax(320px, 1.25fr) minmax(260px, 0.75fr);
+        border: 1px solid var(--line-bright);
+        border-radius: 7px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .result-primary {
+        position: relative;
+        padding: clamp(22px, 3vw, 34px);
+        border-right: 1px solid var(--line);
+      }
+
+      .result-primary::before {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: var(--mint);
+        content: "";
+      }
+
+      .result-kicker {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--mint);
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .status-pulse {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--mint);
+        box-shadow: 0 0 0 5px rgba(115, 223, 187, 0.12);
+      }
+
+      .price-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 18px;
+        margin-top: 14px;
+      }
+
+      .price-final strong {
+        display: block;
+        color: var(--text);
+        font: 600 clamp(45px, 5vw, 68px)/0.95 Georgia, serif;
+      }
+
+      .price-final span {
+        display: block;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .price-before {
+        padding-bottom: 5px;
+      }
+
+      .price-before span,
+      .price-before strong {
+        display: block;
+      }
+
+      .price-before span {
+        color: var(--muted);
+        font-size: 9px;
+        text-transform: uppercase;
+      }
+
+      .price-before strong {
+        margin-top: 4px;
+        color: #a7b4af;
+        font: 500 19px/1 Georgia, serif;
+        text-decoration: line-through;
+        text-decoration-color: var(--coral);
+      }
+
+      .result-secondary {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .result-stat {
+        min-height: 118px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 18px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .result-stat:nth-child(2n) {
+        border-right: 0;
+      }
+
+      .result-stat:nth-last-child(-n + 2) {
+        border-bottom: 0;
+      }
+
+      .result-stat span,
+      .result-stat strong,
+      .result-stat small {
+        display: block;
+      }
+
+      .result-stat span {
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .result-stat strong {
+        margin-top: 7px;
+        color: var(--mint);
+        font: 600 22px/1 Georgia, serif;
+      }
+
+      .result-stat small {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .studio-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(286px, 0.7fr);
+        min-width: 0;
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .studio-stage,
+      .replay-panel,
+      .evidence-strip {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--surface);
+      }
+
+      .panel-head {
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 17px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel-head h2 {
+        margin: 0;
+        font: 600 16px/1.2 Georgia, serif;
+      }
+
+      .panel-head p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .recording-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--mint);
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .recording-chip svg,
+      .demo-badge svg,
+      .inline-icon svg {
+        width: 15px;
+        height: 15px;
+        stroke-width: 2;
+      }
+
+      .voice-console {
+        padding: 18px;
+      }
+
+      .wave-stage {
+        height: 148px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: #101a17;
+      }
+
+      .wave-bar {
+        width: 5px;
+        height: var(--h);
+        min-width: 0;
+        flex: 1 1 5px;
+        max-height: 112px;
+        border-radius: 5px;
+        background: var(--line-bright);
+        transform-origin: center;
+        transition: background-color 180ms ease;
+      }
+
+      .wave-bar.passed {
+        background: var(--mint);
+      }
+
+      .wave-stage.playing .wave-bar:nth-child(5n + 1) {
+        animation: meter 700ms ease-in-out infinite alternate;
+      }
+
+      .wave-stage.playing .wave-bar:nth-child(5n + 2) {
+        animation: meter 850ms ease-in-out 100ms infinite alternate;
+      }
+
+      .wave-stage.playing .wave-bar:nth-child(5n + 3) {
+        animation: meter 640ms ease-in-out 180ms infinite alternate;
+      }
+
+      @keyframes meter {
+        to {
+          transform: scaleY(0.42);
+        }
+      }
+
+      .transport {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .transport-button {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        background: var(--mint);
+        color: #0b211a;
+        cursor: pointer;
+        transition:
+          transform 140ms var(--enter),
+          background-color 160ms ease;
+      }
+
+      .transport-button:hover {
+        background: #9aebd0;
+      }
+
+      .transport-button:active {
+        transform: scale(0.93);
+      }
+
+      .icon-slot {
+        width: 18px;
+        height: 18px;
+        display: grid;
+        place-items: center;
+      }
+
+      .icon-slot svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      i[data-lucide]::before {
+        content: "▶";
+        font-size: 11px;
+      }
+
+      .scrubber {
+        width: 100%;
+        accent-color: var(--mint);
+        cursor: pointer;
+      }
+
+      .timecode {
+        color: var(--muted);
+        font: 700 10px/1 "SFMono-Regular", Consolas, monospace;
+        white-space: nowrap;
+      }
+
+      .prototype-note {
+        margin: 9px 0 0 56px;
+        color: #74867f;
+        font-size: 8px;
+      }
+
+      .transcript {
+        margin-top: 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      .transcript-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 0;
+      }
+
+      .transcript-meta strong {
+        color: var(--mint);
+        font: 800 10px/1 "SFMono-Regular", Consolas, monospace;
+      }
+
+      .transcript-meta span {
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .dialogue {
+        min-height: 153px;
+        display: grid;
+        gap: 10px;
+        transition:
+          opacity 150ms ease,
+          transform 180ms var(--enter);
+      }
+
+      .dialogue.updating {
+        opacity: 0.28;
+        transform: translateX(7px);
+      }
+
+      .utterance {
+        display: grid;
+        grid-template-columns: 90px minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px 13px;
+        border-left: 2px solid var(--line-bright);
+        background: var(--surface-2);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .utterance.agent {
+        border-left-color: var(--mint);
+      }
+
+      .utterance.provider {
+        border-left-color: var(--coral);
+      }
+
+      .speaker {
+        color: var(--muted);
+        font-size: 8px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .utterance.provider .words {
+        color: #dce9e3;
+        font-weight: 700;
+      }
+
+      .replay-panel {
+        align-self: start;
+      }
+
+      .replay-list {
+        display: grid;
+      }
+
+      .replay-item {
+        width: 100%;
+        min-height: 110px;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        gap: 11px;
+        padding: 15px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+        transition:
+          background-color 160ms ease,
+          box-shadow 180ms ease;
+      }
+
+      .replay-item:last-child {
+        border-bottom: 0;
+      }
+
+      .replay-item:hover {
+        background: var(--surface-2);
+      }
+
+      .replay-item[aria-pressed="true"] {
+        background: var(--surface-3);
+        box-shadow: inset 3px 0 var(--mint);
+      }
+
+      .replay-play {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line-bright);
+        border-radius: 50%;
+        background: #101a17;
+        color: var(--mint);
+      }
+
+      .replay-play svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .replay-time {
+        color: var(--mint);
+        font: 800 9px/1 "SFMono-Regular", Consolas, monospace;
+      }
+
+      .replay-copy strong,
+      .replay-copy span,
+      .replay-copy em {
+        display: block;
+      }
+
+      .replay-copy strong {
+        margin-top: 7px;
+        font-size: 11px;
+      }
+
+      .replay-copy span {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 9px;
+        line-height: 1.42;
+      }
+
+      .replay-copy em {
+        margin-top: 8px;
+        color: var(--amber);
+        font-size: 9px;
+        font-style: normal;
+        font-weight: 800;
+      }
+
+      .evidence-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 16px;
+        overflow: hidden;
+      }
+
+      .evidence-item {
+        min-height: 96px;
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr);
+        align-content: center;
+        gap: 10px;
+        padding: 16px;
+        border-right: 1px solid var(--line);
+      }
+
+      .evidence-item:last-child {
+        border-right: 0;
+      }
+
+      .evidence-icon {
+        width: 25px;
+        height: 25px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--mint-dim);
+        color: var(--mint);
+      }
+
+      .evidence-icon svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .evidence-item strong,
+      .evidence-item span {
+        display: block;
+      }
+
+      .evidence-item strong {
+        font-size: 10px;
+      }
+
+      .evidence-item span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 8px;
+        line-height: 1.45;
+      }
+
+      .disclaimer {
+        margin: 18px 0 0;
+        color: #71837c;
+        font-size: 8px;
+        line-height: 1.45;
+      }
+
+      @media (max-width: 1050px) {
+        .result-console {
+          grid-template-columns: 1fr;
+        }
+
+        .result-primary {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .studio-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .replay-list {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .replay-item {
+          border-right: 1px solid var(--line);
+          border-bottom: 0;
+        }
+
+        .replay-item:last-child {
+          border-right: 0;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .app {
+          display: block;
+        }
+
+        .side-rail {
+          position: static;
+          width: 100%;
+          height: auto;
+          display: block;
+          padding: 13px 14px 10px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+          margin-bottom: 12px;
+        }
+
+        .rail-label,
+        .rail-footer {
+          display: none;
+        }
+
+        .journey {
+          display: flex;
+          gap: 5px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+
+        .journey::-webkit-scrollbar {
+          display: none;
+        }
+
+        .journey li {
+          min-width: max-content;
+          min-height: 32px;
+          padding: 5px 8px;
+        }
+
+        main {
+          padding: 18px 13px 32px;
+        }
+
+        .topbar {
+          display: block;
+        }
+
+        .demo-badge {
+          margin-top: 11px;
+        }
+
+        .result-secondary {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .price-row {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .price-before {
+          padding-bottom: 0;
+        }
+
+        .replay-list {
+          grid-template-columns: 1fr;
+        }
+
+        .replay-item {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .evidence-strip {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .evidence-item:nth-child(2) {
+          border-right: 0;
+        }
+
+        .evidence-item:nth-child(-n + 2) {
+          border-bottom: 1px solid var(--line);
+        }
+
+        .utterance {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .result-secondary {
+          grid-template-columns: 1fr;
+        }
+
+        .result-stat,
+        .result-stat:nth-child(2n),
+        .result-stat:nth-last-child(-n + 2) {
+          min-height: 88px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .result-stat:last-child {
+          border-bottom: 0;
+        }
+
+        .wave-stage {
+          height: 118px;
+        }
+
+        .transport {
+          grid-template-columns: 44px minmax(0, 1fr);
+        }
+
+        .timecode {
+          grid-column: 2;
+        }
+
+        .prototype-note {
+          margin-left: 0;
+        }
+
+        .evidence-strip {
+          grid-template-columns: 1fr;
+        }
+
+        .evidence-item,
+        .evidence-item:nth-child(2) {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .evidence-item:last-child {
+          border-bottom: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side-rail">
+        <div class="brand">
+          <span class="brand-mark">PS</span>
+          <span><strong>PolicyScout</strong><span>Negotiation studio</span></span>
+        </div>
+        <p class="rail-label">Workflow</p>
+        <ol class="journey">
+          <li class="done"><span class="step-dot">✓</span><span>Profile</span></li>
+          <li class="done"><span class="step-dot">✓</span><span>Top 5 research</span></li>
+          <li class="done"><span class="step-dot">✓</span><span>Quote calls</span></li>
+          <li class="done"><span class="step-dot">✓</span><span>Selection</span></li>
+          <li class="done"><span class="step-dot">✓</span><span>Negotiation</span></li>
+          <li class="active" aria-current="step"><span class="step-dot">6</span><span>Final result</span></li>
+        </ol>
+        <div class="rail-footer"><span class="secure-label"><i data-lucide="shield-check"></i> Private target protected</span></div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div><h1>Negotiation session complete</h1><p>HarborShield Auto · Session PS-7F31 · July 18, 2026</p></div>
+          <span class="demo-badge"><i data-lucide="flask-conical"></i> Simulated provider</span>
+        </header>
+
+        <section class="result-console" aria-label="Final negotiated price">
+          <div class="result-primary">
+            <span class="result-kicker"><span class="status-pulse"></span> Final price verified in transcript</span>
+            <div class="price-row">
+              <span class="price-final"><strong>$1,428</strong><span>Negotiated annual premium</span></span>
+              <span class="price-before"><span>From selected quote</span><strong>$1,684</strong></span>
+            </div>
+          </div>
+          <div class="result-secondary">
+            <div class="result-stat"><span>You saved</span><strong>$256</strong><small>per year</small></div>
+            <div class="result-stat"><span>Reduction</span><strong>15.2%</strong><small>verified</small></div>
+            <div class="result-stat"><span>Your target</span><strong>$1,450</strong><small>achieved</small></div>
+            <div class="result-stat"><span>Coverage</span><strong>Same</strong><small>4 checks passed</small></div>
+          </div>
+        </section>
+
+        <div class="studio-grid">
+          <section class="studio-stage" aria-labelledby="recording-heading">
+            <header class="panel-head">
+              <div><h2 id="recording-heading">Full negotiation audio</h2><p>6:42 · transcript and concessions synchronized</p></div>
+              <span class="recording-chip"><i data-lucide="badge-check"></i> Verified recording</span>
+            </header>
+            <div class="voice-console">
+              <div class="wave-stage" id="wave-stage" aria-hidden="true"></div>
+              <div class="transport">
+                <button class="transport-button" id="play-button" type="button" aria-label="Play negotiation audio"><span class="icon-slot"><i data-lucide="play"></i></span></button>
+                <input class="scrubber" id="scrubber" type="range" min="0" max="402" value="134" aria-label="Negotiation audio position" />
+                <span class="timecode"><span id="time-current">02:14</span> / 06:42</span>
+              </div>
+              <p class="prototype-note">Prototype audio uses browser voice; production playback uses the ElevenLabs conversation recording.</p>
+
+              <div class="transcript">
+                <div class="transcript-meta"><strong id="clip-time">02:14</strong><span id="clip-label">Verified leverage · −$138</span></div>
+                <div class="dialogue" id="dialogue" aria-live="polite">
+                  <div class="utterance agent"><span class="speaker">PolicyScout</span><span class="words" id="agent-words">We have a verified $1,472 quote for the same coverage. Can you review the safe-driver adjustment without changing any limits?</span></div>
+                  <div class="utterance provider"><span class="speaker">HarborShield</span><span class="words" id="provider-words">I can apply that review and reduce the annual premium to $1,546. Coverage stays unchanged.</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="replay-panel" aria-labelledby="replay-heading">
+            <header class="panel-head"><div><h2 id="replay-heading">Good negotiation replay</h2><p>Play the moments that moved price</p></div></header>
+            <div class="replay-list">
+              <button class="replay-item" type="button" data-clip="0" aria-pressed="true">
+                <span class="replay-play"><i data-lucide="play"></i></span>
+                <span class="replay-copy"><span class="replay-time">02:14</span><strong>Verified competing leverage</strong><span>Used an equivalent quote without bluffing or weakening coverage.</span><em>Impact · −$138</em></span>
+              </button>
+              <button class="replay-item" type="button" data-clip="1" aria-pressed="false">
+                <span class="replay-play"><i data-lucide="play"></i></span>
+                <span class="replay-copy"><span class="replay-time">04:08</span><strong>Discount discovery</strong><span>Asked the seller to check the confirmed profile against every eligible credit.</span><em>Impact · −$74</em></span>
+              </button>
+              <button class="replay-item" type="button" data-clip="2" aria-pressed="false">
+                <span class="replay-play"><i data-lucide="play"></i></span>
+                <span class="replay-copy"><span class="replay-time">05:36</span><strong>Precise closing ask</strong><span>Used the approved range and requested final authority, without revealing the private ceiling.</span><em>Impact · −$44</em></span>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <section class="evidence-strip" aria-label="Negotiation evidence">
+          <div class="evidence-item"><span class="evidence-icon"><i data-lucide="shield-check"></i></span><span><strong>Coverage unchanged</strong><span>100/300/100 limits, $500 deductibles, and roadside retained.</span></span></div>
+          <div class="evidence-item"><span class="evidence-icon"><i data-lucide="fingerprint"></i></span><span><strong>Same request hash</strong><span>PS-AUTO-7F31 matched the quote and competing leverage.</span></span></div>
+          <div class="evidence-item"><span class="evidence-icon"><i data-lucide="eye-off"></i></span><span><strong>Private ceiling hidden</strong><span>Only “below $1,450” was disclosed as approved.</span></span></div>
+          <div class="evidence-item"><span class="evidence-icon"><i data-lucide="file-audio"></i></span><span><strong>Evidence retained</strong><span>Recording, transcript, and structured price event saved.</span></span></div>
+        </section>
+
+        <p class="disclaimer">PolicyScout is an AI insurance shopping assistant. It gathers and compares simulated or preliminary quotes but cannot bind coverage or replace a licensed insurance professional.</p>
+      </main>
+    </div>
+
+    <script>
+      const clips = [
+        { time: 134, stamp: "02:14", label: "Verified leverage · −$138", agent: "We have a verified $1,472 quote for the same coverage. Can you review the safe-driver adjustment without changing any limits?", provider: "I can apply that review and reduce the annual premium to $1,546. Coverage stays unchanged." },
+        { time: 248, stamp: "04:08", label: "Discount discovery · −$74", agent: "Can you check this confirmed profile against every available discount, including monitored-driving enrollment?", provider: "The driver qualifies for our telematics enrollment credit. The updated annual price is $1,472." },
+        { time: 336, stamp: "05:36", label: "Precise closing ask · −$44", agent: "If HarborShield can move below the approved $1,450 range, the customer is ready to take this to a licensed agent for review.", provider: "I received final approval for $1,428 per year, with all requested coverage unchanged." }
+      ];
+
+      const duration = 402;
+      const waveStage = document.querySelector("#wave-stage");
+      const scrubber = document.querySelector("#scrubber");
+      const playButton = document.querySelector("#play-button");
+      const dialogue = document.querySelector("#dialogue");
+      const replayItems = [...document.querySelectorAll(".replay-item")];
+      let activeClip = 0;
+      let playing = false;
+      let timer = null;
+
+      function formatTime(seconds) {
+        return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+      }
+
+      function buildWave() {
+        const values = [20, 38, 62, 82, 44, 74, 96, 56, 30, 68, 88, 48, 78, 36, 64, 92, 52, 26, 72, 84, 42, 66, 98, 54, 32, 76, 90, 46, 70, 40, 86, 58, 24, 64, 94, 50, 78, 34, 68, 88, 44, 74, 98, 56, 28, 62, 84, 48, 72, 38, 92, 52, 30, 80, 66, 42, 96, 58, 34, 74, 88, 46, 68, 26];
+        values.forEach((value) => {
+          const bar = document.createElement("span");
+          bar.className = "wave-bar";
+          bar.style.setProperty("--h", `${value}%`);
+          waveStage.appendChild(bar);
+        });
+        syncProgress(Number(scrubber.value));
+      }
+
+      function syncProgress(seconds) {
+        document.querySelector("#time-current").textContent = formatTime(seconds);
+        const bars = [...waveStage.children];
+        const passed = Math.round((seconds / duration) * bars.length);
+        bars.forEach((bar, index) => bar.classList.toggle("passed", index < passed));
+      }
+
+      function redrawPlayIcon(name) {
+        playButton.querySelector(".icon-slot").innerHTML = `<i data-lucide="${name}"></i>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function setPlaying(next) {
+        playing = next;
+        waveStage.classList.toggle("playing", playing);
+        redrawPlayIcon(playing ? "pause" : "play");
+        playButton.setAttribute("aria-label", playing ? "Pause negotiation audio" : "Play negotiation audio");
+        if (timer) window.clearInterval(timer);
+        if (playing) {
+          timer = window.setInterval(() => {
+            const nextValue = Number(scrubber.value) >= duration ? 0 : Number(scrubber.value) + 1;
+            scrubber.value = String(nextValue);
+            syncProgress(nextValue);
+          }, 1000);
+        }
+      }
+
+      function speak(clip) {
+        if (!("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(`PolicyScout: ${clip.agent} HarborShield: ${clip.provider}`);
+        utterance.rate = 0.98;
+        utterance.pitch = 0.92;
+        utterance.onend = () => setPlaying(false);
+        utterance.onerror = () => setPlaying(false);
+        window.speechSynthesis.speak(utterance);
+      }
+
+      function chooseClip(index, shouldPlay = true) {
+        activeClip = index;
+        const clip = clips[index];
+        replayItems.forEach((item, itemIndex) => item.setAttribute("aria-pressed", String(itemIndex === index)));
+        dialogue.classList.add("updating");
+        window.setTimeout(() => {
+          document.querySelector("#clip-time").textContent = clip.stamp;
+          document.querySelector("#clip-label").textContent = clip.label;
+          document.querySelector("#agent-words").textContent = clip.agent;
+          document.querySelector("#provider-words").textContent = clip.provider;
+          dialogue.classList.remove("updating");
+        }, 150);
+        scrubber.value = String(clip.time);
+        syncProgress(clip.time);
+        setPlaying(shouldPlay);
+        if (shouldPlay) speak(clip);
+      }
+
+      playButton.addEventListener("click", () => {
+        if (playing) {
+          setPlaying(false);
+          if ("speechSynthesis" in window) window.speechSynthesis.pause();
+        } else {
+          setPlaying(true);
+          if ("speechSynthesis" in window && window.speechSynthesis.paused) window.speechSynthesis.resume();
+          else speak(clips[activeClip]);
+        }
+      });
+
+      scrubber.addEventListener("input", (event) => syncProgress(Number(event.target.value)));
+      replayItems.forEach((item) => item.addEventListener("click", () => chooseClip(Number(item.dataset.clip))));
+
+      buildWave();
+      if (window.lucide) window.lucide.createIcons();
+    </script>
+  </body>
+</html>

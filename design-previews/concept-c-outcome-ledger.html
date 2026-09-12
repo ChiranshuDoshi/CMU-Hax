@@ -1,0 +1,1264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolicyScout - Outcome Ledger</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #102a34;
+        --muted: #61757d;
+        --paper: #ffffff;
+        --canvas: #f2f6f6;
+        --line: #d6e0e1;
+        --line-strong: #a8bec0;
+        --teal: #007f73;
+        --teal-dark: #075b55;
+        --teal-soft: #dcefeb;
+        --coral: #e66048;
+        --coral-soft: #fbe6e2;
+        --yellow: #f0c959;
+        --yellow-soft: #fff5d4;
+        --blue: #2f748f;
+        --shadow: 0 16px 42px rgba(16, 42, 52, 0.08);
+        --enter: cubic-bezier(0.22, 1, 0.36, 1);
+        --move: cubic-bezier(0.25, 1, 0.5, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-width: 320px;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid rgba(0, 127, 115, 0.28);
+        outline-offset: 2px;
+      }
+
+      .page {
+        min-height: 100vh;
+      }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(15px);
+      }
+
+      .header-inner {
+        max-width: 1420px;
+        min-height: 68px;
+        display: grid;
+        grid-template-columns: 190px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 24px;
+        margin: 0 auto;
+        padding: 0 clamp(18px, 3vw, 42px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .brand-mark {
+        width: 33px;
+        height: 33px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--ink);
+        color: white;
+        font: 800 12px/1 Georgia, serif;
+      }
+
+      .brand strong,
+      .brand span {
+        display: block;
+      }
+
+      .brand strong {
+        font-size: 13px;
+      }
+
+      .brand span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 9px;
+        text-transform: uppercase;
+      }
+
+      .workflow {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(72px, 1fr));
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .workflow li {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 5px;
+        color: var(--muted);
+        font-size: 8px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .workflow li::before {
+        position: absolute;
+        top: 9px;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--line);
+        content: "";
+      }
+
+      .workflow li:first-child::before {
+        left: 50%;
+      }
+
+      .workflow li:last-child::before {
+        right: 50%;
+      }
+
+      .workflow .node {
+        z-index: 1;
+        width: 19px;
+        height: 19px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--teal);
+        border-radius: 50%;
+        background: var(--teal);
+        color: white;
+        font-size: 8px;
+      }
+
+      .workflow li.active {
+        color: var(--teal-dark);
+        font-weight: 900;
+      }
+
+      .workflow li.active .node {
+        box-shadow: 0 0 0 5px var(--teal-soft);
+      }
+
+      .demo-badge {
+        min-height: 31px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 10px;
+        border: 1px solid #e8a99c;
+        border-radius: 999px;
+        background: var(--coral-soft);
+        color: #853a28;
+        font-size: 9px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .demo-badge svg,
+      .meta-chip svg,
+      .check-icon svg,
+      .icon-button svg,
+      .tiny-icon svg {
+        width: 15px;
+        height: 15px;
+        stroke-width: 2;
+      }
+
+      main {
+        max-width: 1420px;
+        margin: 0 auto;
+        padding: 28px clamp(18px, 3vw, 42px) 44px;
+      }
+
+      .report-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 15px;
+      }
+
+      .report-meta p {
+        margin: 0;
+        color: var(--teal);
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .report-meta span {
+        color: var(--muted);
+        font: 700 9px/1 "SFMono-Regular", Consolas, monospace;
+      }
+
+      .outcome-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+        border-top: 5px solid var(--ink);
+        border-bottom: 1px solid var(--line-strong);
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+
+      .outcome-story {
+        padding: clamp(24px, 4vw, 44px);
+        border-right: 1px solid var(--line);
+      }
+
+      .outcome-story h1 {
+        max-width: 660px;
+        margin: 0;
+        font: 600 clamp(27px, 3.6vw, 48px)/1.06 Georgia, "Times New Roman", serif;
+      }
+
+      .outcome-story h1 span {
+        color: var(--teal);
+      }
+
+      .outcome-story > p {
+        max-width: 660px;
+        margin: 13px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .price-story {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1.15fr);
+        align-items: end;
+        gap: 16px;
+        margin-top: 28px;
+      }
+
+      .price-block span,
+      .price-block strong,
+      .price-block small {
+        display: block;
+      }
+
+      .price-block span {
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .price-block strong {
+        margin-top: 7px;
+        font: 600 clamp(27px, 3.2vw, 43px)/1 Georgia, serif;
+      }
+
+      .price-block.before strong {
+        color: #667a81;
+        text-decoration: line-through;
+        text-decoration-color: var(--coral);
+        text-decoration-thickness: 2px;
+      }
+
+      .price-block.after strong {
+        color: var(--teal-dark);
+        font-size: clamp(38px, 4.5vw, 61px);
+      }
+
+      .price-block small {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .price-arrow {
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 8px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: var(--canvas);
+        color: var(--teal);
+      }
+
+      .price-arrow svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .outcome-summary {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        min-width: 0;
+      }
+
+      .savings-figure {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: clamp(24px, 4vw, 40px);
+        background: var(--teal-soft);
+      }
+
+      .savings-figure > span,
+      .savings-figure > strong,
+      .savings-figure > small {
+        display: block;
+      }
+
+      .savings-figure > span {
+        color: var(--teal-dark);
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .savings-figure > strong {
+        margin-top: 10px;
+        color: var(--teal-dark);
+        font: 700 clamp(43px, 5vw, 66px)/0.95 Georgia, serif;
+      }
+
+      .savings-figure > small {
+        margin-top: 9px;
+        color: var(--teal-dark);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .target-band {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 17px 20px;
+        background: var(--yellow-soft);
+      }
+
+      .target-band span,
+      .target-band strong {
+        display: block;
+      }
+
+      .target-band span {
+        color: #79611b;
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .target-band strong {
+        margin-top: 3px;
+        color: #5d4a13;
+        font-size: 12px;
+      }
+
+      .target-check {
+        width: 31px;
+        height: 31px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--yellow);
+        color: #4b3b0c;
+      }
+
+      .target-check svg {
+        width: 17px;
+        height: 17px;
+      }
+
+      .audio-ledger {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: minmax(210px, 0.55fr) minmax(0, 1.45fr);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--paper);
+        overflow: hidden;
+      }
+
+      .audio-title {
+        padding: 18px 20px;
+        border-right: 1px solid var(--line);
+      }
+
+      .audio-title h2 {
+        margin: 0;
+        font: 600 16px/1.2 Georgia, serif;
+      }
+
+      .audio-title p {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .audio-title .meta-chip {
+        margin-top: 12px;
+      }
+
+      .meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--teal-dark);
+        font-size: 9px;
+        font-weight: 900;
+      }
+
+      .audio-player {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 13px;
+        padding: 15px 20px;
+      }
+
+      .icon-button {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        background: var(--ink);
+        color: white;
+        cursor: pointer;
+        transition:
+          background-color 160ms ease,
+          transform 140ms var(--enter);
+      }
+
+      .icon-button:hover {
+        background: var(--teal);
+      }
+
+      .icon-button:active {
+        transform: scale(0.94);
+      }
+
+      .icon-slot {
+        width: 17px;
+        height: 17px;
+        display: grid;
+        place-items: center;
+      }
+
+      i[data-lucide]::before {
+        content: "▶";
+        font-size: 11px;
+      }
+
+      .wave-wrap {
+        min-width: 0;
+      }
+
+      .waveform {
+        height: 31px;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        overflow: hidden;
+      }
+
+      .wave-bar {
+        width: 3px;
+        height: var(--h);
+        flex: 1 1 3px;
+        max-width: 5px;
+        border-radius: 4px;
+        background: #bdd0d1;
+        transform-origin: center;
+      }
+
+      .wave-bar.passed {
+        background: var(--teal);
+      }
+
+      .waveform.playing .wave-bar:nth-child(4n + 1) {
+        animation: pulse 760ms ease-in-out infinite alternate;
+      }
+
+      .waveform.playing .wave-bar:nth-child(4n + 2) {
+        animation: pulse 900ms ease-in-out 110ms infinite alternate;
+      }
+
+      @keyframes pulse {
+        to {
+          transform: scaleY(0.48);
+        }
+      }
+
+      .scrubber {
+        width: 100%;
+        margin-top: 4px;
+        accent-color: var(--teal);
+        cursor: pointer;
+      }
+
+      .timecode {
+        color: var(--muted);
+        font: 700 10px/1 "SFMono-Regular", Consolas, monospace;
+        white-space: nowrap;
+      }
+
+      .prototype-note {
+        grid-column: 2 / -1;
+        margin: -7px 0 9px;
+        color: #809298;
+        font-size: 8px;
+      }
+
+      .body-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(290px, 0.6fr);
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .ledger,
+      .side-section {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--paper);
+      }
+
+      .section-head {
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .section-head h2 {
+        margin: 0;
+        font: 600 17px/1.2 Georgia, serif;
+      }
+
+      .section-head p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .impact-total {
+        color: var(--teal-dark);
+        font-size: 10px;
+        font-weight: 900;
+      }
+
+      .ledger-progress {
+        display: grid;
+        grid-template-columns: 138fr 74fr 44fr;
+        height: 9px;
+        margin: 18px 20px 6px;
+        overflow: hidden;
+        border-radius: 99px;
+        background: var(--line);
+      }
+
+      .ledger-progress span:nth-child(1) {
+        background: var(--teal);
+      }
+
+      .ledger-progress span:nth-child(2) {
+        background: var(--yellow);
+      }
+
+      .ledger-progress span:nth-child(3) {
+        background: var(--coral);
+      }
+
+      .progress-labels {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 20px 16px;
+        color: var(--muted);
+        font-size: 8px;
+      }
+
+      .timeline {
+        position: relative;
+        padding: 2px 18px 8px;
+      }
+
+      .timeline::before {
+        position: absolute;
+        top: 6px;
+        bottom: 24px;
+        left: 42px;
+        width: 1px;
+        background: var(--line-strong);
+        content: "";
+      }
+
+      .moment {
+        position: relative;
+        width: 100%;
+        min-height: 104px;
+        display: grid;
+        grid-template-columns: 49px 64px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 11px;
+        padding: 12px 3px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+        transition:
+          background-color 160ms ease,
+          transform 180ms var(--enter);
+      }
+
+      .moment:last-child {
+        border-bottom: 0;
+      }
+
+      .moment:hover {
+        background: #f6fafa;
+      }
+
+      .moment[aria-pressed="true"] {
+        background: var(--teal-soft);
+        transform: translateX(4px);
+      }
+
+      .moment-play {
+        z-index: 1;
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        justify-self: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 50%;
+        background: white;
+        color: var(--teal-dark);
+      }
+
+      .moment-play svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .moment-time {
+        color: var(--teal-dark);
+        font: 800 10px/1 "SFMono-Regular", Consolas, monospace;
+      }
+
+      .moment-copy strong,
+      .moment-copy span {
+        display: block;
+      }
+
+      .moment-copy strong {
+        font-size: 12px;
+      }
+
+      .moment-copy span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 9px;
+        line-height: 1.45;
+      }
+
+      .moment-impact {
+        min-width: 58px;
+        padding: 8px;
+        border-radius: 5px;
+        background: white;
+        color: var(--teal-dark);
+        font-size: 10px;
+        font-weight: 900;
+        text-align: center;
+      }
+
+      .transcript-proof {
+        margin: 8px 20px 20px;
+        padding: 16px 17px;
+        border-left: 3px solid var(--teal);
+        background: #f5f9f8;
+        transition:
+          opacity 150ms ease,
+          transform 180ms var(--enter);
+      }
+
+      .transcript-proof.updating {
+        opacity: 0.3;
+        transform: translateY(5px);
+      }
+
+      .proof-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 11px;
+      }
+
+      .proof-meta strong {
+        color: var(--teal-dark);
+        font: 800 9px/1 "SFMono-Regular", Consolas, monospace;
+      }
+
+      .proof-meta span {
+        color: var(--muted);
+        font-size: 8px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .proof-line {
+        display: grid;
+        grid-template-columns: 86px minmax(0, 1fr);
+        gap: 10px;
+        margin-top: 8px;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .proof-line .speaker {
+        color: var(--muted);
+        font-size: 8px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .proof-line.provider .words {
+        color: var(--teal-dark);
+        font-weight: 800;
+      }
+
+      .side-column {
+        display: grid;
+        align-content: start;
+        gap: 18px;
+      }
+
+      .decision-note {
+        padding: 18px;
+      }
+
+      .decision-note p {
+        margin: 0;
+        color: var(--ink);
+        font: 500 15px/1.55 Georgia, serif;
+      }
+
+      .decision-note p strong {
+        color: var(--teal-dark);
+      }
+
+      .decision-note small {
+        display: block;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 9px;
+        line-height: 1.45;
+      }
+
+      .check-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .check-list li {
+        display: grid;
+        grid-template-columns: 27px minmax(0, 1fr);
+        gap: 10px;
+        padding: 13px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .check-list li:last-child {
+        border-bottom: 0;
+      }
+
+      .check-icon {
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--teal-soft);
+        color: var(--teal-dark);
+      }
+
+      .check-list strong,
+      .check-list span {
+        display: block;
+      }
+
+      .check-list strong {
+        font-size: 10px;
+      }
+
+      .check-list span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 8px;
+        line-height: 1.45;
+      }
+
+      .disclosure-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9px;
+      }
+
+      .disclosure-table th,
+      .disclosure-table td {
+        padding: 10px 15px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+      }
+
+      .disclosure-table tr:last-child th,
+      .disclosure-table tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .disclosure-table th {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .disclosure-table td {
+        color: var(--teal-dark);
+        font-weight: 900;
+        text-align: right;
+      }
+
+      .disclaimer {
+        margin: 20px 0 0;
+        color: var(--muted);
+        font-size: 8px;
+        line-height: 1.45;
+      }
+
+      @media (max-width: 1050px) {
+        .header-inner {
+          grid-template-columns: 170px minmax(0, 1fr);
+        }
+
+        .demo-badge {
+          display: none;
+        }
+
+        .outcome-header {
+          grid-template-columns: 1fr;
+        }
+
+        .outcome-story {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .outcome-summary {
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto;
+        }
+
+        .body-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .side-column {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .side-column .side-section:last-child {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .header-inner {
+          display: block;
+          padding: 12px 14px 9px;
+        }
+
+        .brand {
+          margin-bottom: 11px;
+        }
+
+        .workflow {
+          display: flex;
+          gap: 7px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+
+        .workflow::-webkit-scrollbar {
+          display: none;
+        }
+
+        .workflow li {
+          min-width: max-content;
+          grid-template-columns: 19px auto;
+          align-items: center;
+          justify-items: start;
+          gap: 5px;
+        }
+
+        .workflow li::before {
+          display: none;
+        }
+
+        .workflow .node {
+          grid-row: 1;
+        }
+
+        main {
+          padding: 20px 13px 34px;
+        }
+
+        .report-meta {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .price-story {
+          grid-template-columns: 1fr;
+          align-items: start;
+        }
+
+        .price-arrow {
+          transform: rotate(90deg);
+        }
+
+        .outcome-summary {
+          grid-template-columns: 1fr;
+        }
+
+        .audio-ledger {
+          grid-template-columns: 1fr;
+        }
+
+        .audio-title {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .side-column {
+          grid-template-columns: 1fr;
+        }
+
+        .side-column .side-section:last-child {
+          grid-column: auto;
+        }
+
+        .moment {
+          grid-template-columns: 44px 53px minmax(0, 1fr);
+        }
+
+        .moment-impact {
+          grid-column: 3;
+          justify-self: start;
+          margin-top: -4px;
+        }
+
+        .proof-line {
+          grid-template-columns: 1fr;
+          gap: 3px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .audio-player {
+          grid-template-columns: 42px minmax(0, 1fr);
+        }
+
+        .timecode {
+          grid-column: 2;
+        }
+
+        .prototype-note {
+          grid-column: 1 / -1;
+          margin-top: 0;
+        }
+
+        .progress-labels {
+          display: grid;
+          gap: 4px;
+        }
+
+        .timeline::before {
+          left: 38px;
+        }
+
+        .moment {
+          grid-template-columns: 38px minmax(0, 1fr);
+        }
+
+        .moment-time {
+          grid-column: 2;
+        }
+
+        .moment-copy {
+          grid-column: 2;
+        }
+
+        .moment-impact {
+          grid-column: 2;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="site-header">
+        <div class="header-inner">
+          <div class="brand"><span class="brand-mark">PS</span><span><strong>PolicyScout</strong><span>Outcome ledger</span></span></div>
+          <ol class="workflow">
+            <li><span class="node">✓</span><span>Profile</span></li>
+            <li><span class="node">✓</span><span>Top 5</span></li>
+            <li><span class="node">✓</span><span>Quote calls</span></li>
+            <li><span class="node">✓</span><span>Selection</span></li>
+            <li><span class="node">✓</span><span>Negotiation</span></li>
+            <li class="active" aria-current="step"><span class="node">6</span><span>Final result</span></li>
+          </ol>
+          <span class="demo-badge"><i data-lucide="flask-conical"></i> Simulated provider</span>
+        </div>
+      </header>
+
+      <main>
+        <div class="report-meta"><p>Final decision report · Negotiation complete</p><span>PS-AUTO-7F31 · JUL 18 2026</span></div>
+
+        <section class="outcome-header" aria-labelledby="outcome-title">
+          <div class="outcome-story">
+            <h1 id="outcome-title">PolicyScout negotiated <span>$256 off</span> your selected quote.</h1>
+            <p>HarborShield Auto approved a lower annual premium after three verified asks. Every requested coverage term remained unchanged.</p>
+            <div class="price-story">
+              <div class="price-block before"><span>Selected quote</span><strong>$1,684</strong><small>per year</small></div>
+              <span class="price-arrow" aria-hidden="true"><i data-lucide="arrow-right"></i></span>
+              <div class="price-block after"><span>Final negotiated price</span><strong>$1,428</strong><small>per year · verified at 06:11</small></div>
+            </div>
+          </div>
+          <div class="outcome-summary">
+            <div class="savings-figure"><span>Verified savings</span><strong>15.2%</strong><small>$256 every year</small></div>
+            <div class="target-band"><span><span>Your target</span><strong>Under $1,450 · achieved</strong></span><span class="target-check"><i data-lucide="check"></i></span></div>
+          </div>
+        </section>
+
+        <section class="audio-ledger" aria-labelledby="audio-title">
+          <div class="audio-title"><h2 id="audio-title">Negotiation audio</h2><p>Full call · 6:42</p><span class="meta-chip"><i data-lucide="badge-check"></i> Recording + transcript verified</span></div>
+          <div class="audio-player">
+            <button class="icon-button" id="play-button" type="button" aria-label="Play negotiation audio"><span class="icon-slot"><i data-lucide="play"></i></span></button>
+            <div class="wave-wrap"><div class="waveform" id="waveform" aria-hidden="true"></div><input class="scrubber" id="scrubber" type="range" min="0" max="402" value="134" aria-label="Negotiation audio position" /></div>
+            <span class="timecode"><span id="time-current">02:14</span> / 06:42</span>
+            <p class="prototype-note">Prototype playback uses browser voice. Production uses the ElevenLabs conversation recording.</p>
+          </div>
+        </section>
+
+        <div class="body-grid">
+          <section class="ledger" aria-labelledby="ledger-title">
+            <header class="section-head"><div><h2 id="ledger-title">Good negotiation replay</h2><p>Each verified concession, in the order it happened</p></div><span class="impact-total">$256 total impact</span></header>
+            <div class="ledger-progress" aria-label="Savings contributions: $138, $74, and $44"><span></span><span></span><span></span></div>
+            <div class="progress-labels"><span>Verified leverage · $138</span><span>Discount discovery · $74</span><span>Closing ask · $44</span></div>
+            <div class="timeline">
+              <button class="moment" type="button" data-clip="0" aria-pressed="true">
+                <span class="moment-play"><i data-lucide="play"></i></span><span class="moment-time">02:14</span><span class="moment-copy"><strong>Compared equivalent offers</strong><span>Referenced a verified $1,472 quote with the same limits and deductibles.</span></span><span class="moment-impact">−$138</span>
+              </button>
+              <button class="moment" type="button" data-clip="1" aria-pressed="false">
+                <span class="moment-play"><i data-lucide="play"></i></span><span class="moment-time">04:08</span><span class="moment-copy"><strong>Found an overlooked credit</strong><span>Asked the seller to match the confirmed profile against every eligible discount.</span></span><span class="moment-impact">−$74</span>
+              </button>
+              <button class="moment" type="button" data-clip="2" aria-pressed="false">
+                <span class="moment-play"><i data-lucide="play"></i></span><span class="moment-time">05:36</span><span class="moment-copy"><strong>Closed inside the approved range</strong><span>Requested final authority without revealing the customer's private ceiling.</span></span><span class="moment-impact">−$44</span>
+              </button>
+            </div>
+            <div class="transcript-proof" id="transcript-proof" aria-live="polite">
+              <div class="proof-meta"><strong id="proof-time">02:14</strong><span id="proof-label">Verified leverage · impact −$138</span></div>
+              <div class="proof-line"><span class="speaker">PolicyScout</span><span class="words" id="agent-line">We have a verified $1,472 quote for the same 100/300/100 limits and deductibles. Can you review the safe-driver adjustment without changing coverage?</span></div>
+              <div class="proof-line provider"><span class="speaker">HarborShield</span><span class="words" id="provider-line">I can apply the safe-driver review and reduce the annual premium to $1,546, with coverage unchanged.</span></div>
+            </div>
+          </section>
+
+          <aside class="side-column" aria-label="Recommendation and evidence">
+            <section class="side-section">
+              <header class="section-head"><div><h2>Decision note</h2><p>Why this result is credible</p></div></header>
+              <div class="decision-note"><p><strong>Keep HarborShield in first place.</strong> It now beats the verified competing quote by $44 while preserving the same coverage and deductibles.</p><small>This recommendation is evidence-backed but not binding. A licensed agent should confirm the final policy before purchase.</small></div>
+            </section>
+
+            <section class="side-section">
+              <header class="section-head"><div><h2>Coverage proof</h2><p>Before and after match</p></div></header>
+              <ul class="check-list">
+                <li><span class="check-icon"><i data-lucide="shield-check"></i></span><span><strong>Liability unchanged</strong><span>100/300/100 limits retained.</span></span></li>
+                <li><span class="check-icon"><i data-lucide="circle-check"></i></span><span><strong>Deductibles unchanged</strong><span>$500 collision and comprehensive.</span></span></li>
+                <li><span class="check-icon"><i data-lucide="car-front"></i></span><span><strong>Benefits unchanged</strong><span>Roadside assistance remains included.</span></span></li>
+                <li><span class="check-icon"><i data-lucide="fingerprint"></i></span><span><strong>Specification matched</strong><span>Request hash PS-AUTO-7F31.</span></span></li>
+              </ul>
+            </section>
+
+            <section class="side-section">
+              <header class="section-head"><div><h2>Disclosure ledger</h2><p>What the agent shared</p></div></header>
+              <table class="disclosure-table"><tbody><tr><th>Competing offer</th><td>$1,472 · verified</td></tr><tr><th>Approved range</th><td>Below $1,450</td></tr><tr><th>Private ceiling</th><td>Not disclosed</td></tr><tr><th>Evidence</th><td>Audio + transcript</td></tr></tbody></table>
+            </section>
+          </aside>
+        </div>
+
+        <p class="disclaimer">PolicyScout is an AI insurance shopping assistant. It gathers and compares simulated or preliminary quotes but cannot bind coverage or replace a licensed insurance professional. HarborShield Auto is a simulated provider used for this hackathon demo.</p>
+      </main>
+    </div>
+
+    <script>
+      const clips = [
+        { time: 134, stamp: "02:14", label: "Verified leverage · impact −$138", agent: "We have a verified $1,472 quote for the same 100/300/100 limits and deductibles. Can you review the safe-driver adjustment without changing coverage?", provider: "I can apply the safe-driver review and reduce the annual premium to $1,546, with coverage unchanged." },
+        { time: 248, stamp: "04:08", label: "Discount discovery · impact −$74", agent: "Can you check this confirmed driver profile against every available discount, including monitored-driving enrollment?", provider: "The driver qualifies for our telematics enrollment credit. The revised annual premium is $1,472." },
+        { time: 336, stamp: "05:36", label: "Closing ask · impact −$44", agent: "If HarborShield can move below the approved $1,450 range, the customer is ready to take this offer to a licensed agent for review.", provider: "I received final approval for $1,428 per year. All requested coverage remains unchanged." }
+      ];
+
+      const duration = 402;
+      const waveform = document.querySelector("#waveform");
+      const scrubber = document.querySelector("#scrubber");
+      const playButton = document.querySelector("#play-button");
+      const proof = document.querySelector("#transcript-proof");
+      const moments = [...document.querySelectorAll(".moment")];
+      let activeClip = 0;
+      let playing = false;
+      let timer = null;
+
+      function formatTime(seconds) {
+        return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+      }
+
+      function buildWaveform() {
+        const heights = [26, 44, 76, 54, 88, 36, 64, 92, 48, 70, 32, 82, 58, 40, 96, 52, 68, 30, 78, 46, 90, 60, 38, 72, 50, 86, 34, 66, 94, 56, 42, 80, 28, 74, 48, 88, 62, 36, 70, 52, 98, 44, 76, 30, 84, 58, 40, 92, 50, 68, 34, 80, 54, 38, 96, 46, 72, 32, 86, 60];
+        heights.forEach((height) => {
+          const bar = document.createElement("span");
+          bar.className = "wave-bar";
+          bar.style.setProperty("--h", `${height}%`);
+          waveform.appendChild(bar);
+        });
+        syncProgress(Number(scrubber.value));
+      }
+
+      function syncProgress(seconds) {
+        document.querySelector("#time-current").textContent = formatTime(seconds);
+        const bars = [...waveform.children];
+        const passed = Math.round((seconds / duration) * bars.length);
+        bars.forEach((bar, index) => bar.classList.toggle("passed", index < passed));
+      }
+
+      function drawPlayIcon(name) {
+        playButton.querySelector(".icon-slot").innerHTML = `<i data-lucide="${name}"></i>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function setPlaying(next) {
+        playing = next;
+        waveform.classList.toggle("playing", playing);
+        drawPlayIcon(playing ? "pause" : "play");
+        playButton.setAttribute("aria-label", playing ? "Pause negotiation audio" : "Play negotiation audio");
+        if (timer) window.clearInterval(timer);
+        if (playing) {
+          timer = window.setInterval(() => {
+            const value = Number(scrubber.value) >= duration ? 0 : Number(scrubber.value) + 1;
+            scrubber.value = String(value);
+            syncProgress(value);
+          }, 1000);
+        }
+      }
+
+      function speak(clip) {
+        if (!("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(`PolicyScout: ${clip.agent} HarborShield: ${clip.provider}`);
+        utterance.rate = 0.98;
+        utterance.pitch = 0.96;
+        utterance.onend = () => setPlaying(false);
+        utterance.onerror = () => setPlaying(false);
+        window.speechSynthesis.speak(utterance);
+      }
+
+      function chooseClip(index, shouldPlay = true) {
+        activeClip = index;
+        const clip = clips[index];
+        moments.forEach((moment, momentIndex) => moment.setAttribute("aria-pressed", String(momentIndex === index)));
+        proof.classList.add("updating");
+        window.setTimeout(() => {
+          document.querySelector("#proof-time").textContent = clip.stamp;
+          document.querySelector("#proof-label").textContent = clip.label;
+          document.querySelector("#agent-line").textContent = clip.agent;
+          document.querySelector("#provider-line").textContent = clip.provider;
+          proof.classList.remove("updating");
+        }, 150);
+        scrubber.value = String(clip.time);
+        syncProgress(clip.time);
+        setPlaying(shouldPlay);
+        if (shouldPlay) speak(clip);
+      }
+
+      playButton.addEventListener("click", () => {
+        if (playing) {
+          setPlaying(false);
+          if ("speechSynthesis" in window) window.speechSynthesis.pause();
+        } else {
+          setPlaying(true);
+          if ("speechSynthesis" in window && window.speechSynthesis.paused) window.speechSynthesis.resume();
+          else speak(clips[activeClip]);
+        }
+      });
+
+      scrubber.addEventListener("input", (event) => syncProgress(Number(event.target.value)));
+      moments.forEach((moment) => moment.addEventListener("click", () => chooseClip(Number(moment.dataset.clip))));
+
+      buildWaveform();
+      if (window.lucide) window.lucide.createIcons();
+    </script>
+  </body>
+</html>

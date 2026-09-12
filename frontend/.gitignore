@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.vite/
+.npm-cache/
+.npmrc
+AGENTS.md
+.DS_Store
+*.local
+
+# The source PNGs stay local for art-direction reference; runtime uses WebP.
+public/assets/*.png
+
+# Keep one durable visual comparison; leave browser QA captures local.
+qa/*.png
+qa/*.jpg
+!qa/design-comparison.jpg

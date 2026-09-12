@@ -1,0 +1,53 @@
+{
+  "name": "policyscout",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PolicyScout — AI insurance quote-shopping & negotiation platform.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev -H localhost",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:person3": "vitest run tests/unit/elevenlabs tests/unit/scripts/setup-elevenlabs-agents.test.mjs tests/unit/scripts/prepare-elevenlabs-negotiation.test.mjs tests/unit/scripts/talk-elevenlabs-negotiation.test.mjs tests/unit/scripts/test-elevenlabs-voice.test.mjs tests/unit/scripts/test-elevenlabs-negotiation.test.mjs tests/unit/scripts/verify-elevenlabs-interruption.test.mjs tests/integration/person3-conversations.test.ts",
+    "setup:elevenlabs": "node scripts/setup-elevenlabs-agents.mjs",
+    "prepare:elevenlabs:quote-collection": "tsx scripts/prepare-elevenlabs-quote-collection.ts",
+    "prepare:elevenlabs:negotiation": "node scripts/prepare-elevenlabs-negotiation.mjs",
+    "talk:elevenlabs": "UV_CACHE_DIR=.mcp-cache/uv-cache uv run --locked scripts/talk-elevenlabs-negotiation.py",
+    "verify:elevenlabs:interruption": "UV_CACHE_DIR=.mcp-cache/uv-cache uv run --locked scripts/verify-elevenlabs-interruption.py",
+    "test:elevenlabs:voice": "node scripts/test-elevenlabs-voice.mjs",
+    "test:elevenlabs:negotiation": "node scripts/test-elevenlabs-negotiation.mjs"
+  },
+  "dependencies": {
+    "@elevenlabs/elevenlabs-js": "2.58.0",
+    "@elevenlabs/react": "1.10.1",
+    "@fontsource/ibm-plex-sans": "5.2.8",
+    "@fontsource/manrope": "5.2.8",
+    "@phosphor-icons/react": "^2.1.10",
+    "@tavily/core": "0.7.6",
+    "@upstash/redis": "1.36.3",
+    "motion": "^12.42.2",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.10",
+    "tsx": "^4.23.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

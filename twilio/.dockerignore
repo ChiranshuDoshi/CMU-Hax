@@ -1,0 +1,25 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and generated output
+node_modules
+dist
+coverage
+*.tsbuildinfo
+
+# Tests
+test
+tests
+__tests__
+*.test.*
+*.spec.*
+
+# Local tooling and OS files
+.git
+.gitignore
+.DS_Store
+npm-debug.log*
+pnpm-debug.log*
+

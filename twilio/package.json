@@ -1,0 +1,27 @@
+{
+  "name": "@policyscout/twilio-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated Twilio voice gateway for future PolicyScout AI calls.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --project tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "17.4.2",
+    "twilio": "6.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.1",
+    "tsx": "4.23.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

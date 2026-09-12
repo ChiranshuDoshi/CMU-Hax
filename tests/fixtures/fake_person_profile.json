@@ -1,0 +1,132 @@
+{
+  "id": "profile-demo-person-001",
+  "userId": "user-demo-001",
+  "version": 1,
+  "status": "confirmed",
+  "completenessScore": 100,
+  "quoteReady": true,
+  "demoData": true,
+  "userContext": {
+    "displayName": "Alex Morgan",
+    "state": "MA",
+    "zipCode": "02139",
+    "preferredLanguage": "en",
+    "preferredContactMethod": "email",
+    "desiredEffectiveDate": "2026-08-01"
+  },
+  "insuranceHistory": {
+    "currentCarrier": "Demo Mutual",
+    "continuousInsurance": true,
+    "yearsContinuouslyInsured": 6,
+    "currentPremiumCents": 148200,
+    "paymentFrequency": "annual"
+  },
+  "drivers": [
+    {
+      "id": "driver-alex",
+      "displayLabel": "Alex Morgan",
+      "ageBand": "30-39",
+      "licenseStatus": "valid",
+      "yearsLicensed": 16,
+      "recentAccidents": 0,
+      "recentViolations": 0
+    },
+    {
+      "id": "driver-jordan",
+      "displayLabel": "Jordan Morgan",
+      "ageBand": "30-39",
+      "licenseStatus": "valid",
+      "yearsLicensed": 14,
+      "recentAccidents": 0,
+      "recentViolations": 1
+    }
+  ],
+  "vehicles": [
+    {
+      "id": "vehicle-honda",
+      "year": 2021,
+      "make": "Honda",
+      "model": "CR-V",
+      "ownership": "financed",
+      "primaryUse": "commute",
+      "annualMileage": 9000,
+      "garagingStatus": "private_driveway"
+    },
+    {
+      "id": "vehicle-subaru",
+      "year": 2018,
+      "make": "Subaru",
+      "model": "Impreza",
+      "ownership": "owned",
+      "primaryUse": "personal",
+      "annualMileage": 6000,
+      "garagingStatus": "private_driveway"
+    }
+  ],
+  "discountEligibility": {
+    "multiVehicle": true,
+    "safeDriver": true,
+    "bundle": false,
+    "paidInFull": true,
+    "autopay": true,
+    "telematicsAllowed": false
+  },
+  "confirmedQuoteRequest": {
+    "id": "request-demo-001",
+    "workflowId": "workflow-demo-001",
+    "version": 1,
+    "insuranceLines": ["auto"],
+    "state": "MA",
+    "zipCode": "02139",
+    "desiredEffectiveDate": "2026-08-01",
+    "insuredEntityIds": ["driver-alex", "driver-jordan", "vehicle-honda", "vehicle-subaru"],
+    "requestedCoverage": [
+      {
+        "coverageCode": "bodily_injury_liability",
+        "insuredEntityIds": ["driver-alex", "driver-jordan"],
+        "required": true,
+        "minimumLimitCents": 10000000,
+        "maximumDeductibleCents": null
+      },
+      {
+        "coverageCode": "property_damage_liability",
+        "insuredEntityIds": ["driver-alex", "driver-jordan"],
+        "required": true,
+        "minimumLimitCents": 10000000,
+        "maximumDeductibleCents": null
+      },
+      {
+        "coverageCode": "uninsured_underinsured_motorist",
+        "insuredEntityIds": ["driver-alex", "driver-jordan"],
+        "required": true,
+        "minimumLimitCents": 10000000,
+        "maximumDeductibleCents": null
+      },
+      {
+        "coverageCode": "collision",
+        "insuredEntityIds": ["vehicle-honda", "vehicle-subaru"],
+        "required": true,
+        "minimumLimitCents": null,
+        "maximumDeductibleCents": 100000
+      },
+      {
+        "coverageCode": "comprehensive",
+        "insuredEntityIds": ["vehicle-honda", "vehicle-subaru"],
+        "required": true,
+        "minimumLimitCents": null,
+        "maximumDeductibleCents": 50000
+      },
+      {
+        "coverageCode": "rental_reimbursement",
+        "insuredEntityIds": ["vehicle-honda", "vehicle-subaru"],
+        "required": false,
+        "minimumLimitCents": 120000,
+        "maximumDeductibleCents": null
+      }
+    ],
+    "excludedProviderIds": [],
+    "matchingMode": "exact_match",
+    "specificationHash": "dc2ad34fcd8849acc4506a9fb91ef6379273cee2120d36c1e215b2f0e2c42b30",
+    "confirmedAt": "2026-07-18T14:00:00.000Z"
+  }
+}

@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolicyScout UI Direction Review</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #13211d;
+        --muted: #63706b;
+        --paper: #f5f7f3;
+        --surface: #ffffff;
+        --line: #d8ded9;
+        --accent: #087a68;
+        --accent-soft: #dcefe9;
+        --signal: #e85c3f;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+      }
+
+      button,
+      a {
+        font: inherit;
+      }
+
+      .review-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 264px minmax(0, 1fr);
+      }
+
+      .review-rail {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 28px 20px;
+        border-right: 1px solid var(--line);
+        background: var(--surface);
+        overflow-y: auto;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 30px;
+      }
+
+      .brand-mark {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--ink);
+        color: white;
+        font: 700 13px/1 Georgia, serif;
+      }
+
+      .brand strong,
+      .brand span {
+        display: block;
+      }
+
+      .brand strong {
+        font-size: 14px;
+      }
+
+      .brand span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .rail-label {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .concept-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .concept-button {
+        width: 100%;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 10px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+        text-align: left;
+        transition:
+          background-color 160ms ease,
+          border-color 160ms ease,
+          transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .concept-button:hover {
+        background: #f1f5f1;
+      }
+
+      .concept-button:active {
+        transform: scale(0.985);
+      }
+
+      .concept-button:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--accent) 26%, transparent);
+        outline-offset: 2px;
+      }
+
+      .concept-button[aria-pressed="true"] {
+        border-color: #a9cec3;
+        background: var(--accent-soft);
+      }
+
+      .concept-letter {
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--ink);
+        color: white;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .concept-title,
+      .concept-focus {
+        display: block;
+      }
+
+      .concept-title {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .concept-focus {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      .review-note {
+        margin-top: 26px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+
+      .review-note p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .review-main {
+        min-width: 0;
+        padding: 18px;
+      }
+
+      .review-toolbar {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+
+      .review-toolbar h1 {
+        margin: 0;
+        font: 600 18px/1.2 Georgia, "Times New Roman", serif;
+      }
+
+      .review-toolbar p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .open-preview {
+        min-height: 36px;
+        padding: 0 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--ink);
+        border-radius: 5px;
+        background: var(--ink);
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+        transition:
+          background-color 160ms ease,
+          transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .open-preview:hover {
+        background: var(--accent);
+      }
+
+      .open-preview:active {
+        transform: scale(0.98);
+      }
+
+      .preview-frame-wrap {
+        min-height: calc(100vh - 86px);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--surface);
+        box-shadow: 0 18px 45px rgba(19, 33, 29, 0.1);
+      }
+
+      iframe {
+        width: 100%;
+        min-height: calc(100vh - 88px);
+        display: block;
+        border: 0;
+        background: white;
+      }
+
+      @media (max-width: 820px) {
+        .review-shell {
+          display: block;
+        }
+
+        .review-rail {
+          position: static;
+          width: 100%;
+          height: auto;
+          padding: 16px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .brand,
+        .review-note {
+          display: none;
+        }
+
+        .rail-label {
+          margin-bottom: 8px;
+        }
+
+        .concept-list {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .concept-button {
+          grid-template-columns: 24px minmax(0, 1fr);
+          padding: 9px;
+        }
+
+        .concept-focus {
+          display: none;
+        }
+
+        .review-main {
+          padding: 12px;
+        }
+
+        .review-toolbar {
+          align-items: flex-end;
+        }
+
+        .review-toolbar h1 {
+          font-size: 15px;
+        }
+
+        .review-toolbar p {
+          display: none;
+        }
+
+        .preview-frame-wrap,
+        iframe {
+          min-height: 760px;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .concept-title {
+          font-size: 11px;
+        }
+
+        .concept-letter {
+          width: 22px;
+          height: 22px;
+        }
+
+        .open-preview {
+          padding: 0 10px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="review-shell">
+      <aside class="review-rail" aria-label="Design concepts">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">PS</span>
+          <span>
+            <strong>PolicyScout</strong>
+            <span>UI direction review</span>
+          </span>
+        </div>
+
+        <p class="rail-label">Choose a concept</p>
+        <nav class="concept-list">
+          <button
+            class="concept-button"
+            type="button"
+            data-preview="concept-a-evidence-command.html"
+            data-title="A · Evidence Command Center"
+            aria-pressed="true"
+          >
+            <span class="concept-letter">A</span>
+            <span>
+              <span class="concept-title">Evidence Command</span>
+              <span class="concept-focus">Trust, proof, scanability</span>
+            </span>
+          </button>
+          <button
+            class="concept-button"
+            type="button"
+            data-preview="concept-b-negotiation-studio.html"
+            data-title="B · Negotiation Studio"
+            aria-pressed="false"
+          >
+            <span class="concept-letter">B</span>
+            <span>
+              <span class="concept-title">Negotiation Studio</span>
+              <span class="concept-focus">Voice, transcript, replay</span>
+            </span>
+          </button>
+          <button
+            class="concept-button"
+            type="button"
+            data-preview="concept-c-outcome-ledger.html"
+            data-title="C · Outcome Ledger"
+            aria-pressed="false"
+          >
+            <span class="concept-letter">C</span>
+            <span>
+              <span class="concept-title">Outcome Ledger</span>
+              <span class="concept-focus">Story, result, demo impact</span>
+            </span>
+          </button>
+        </nav>
+
+        <div class="review-note">
+          <p>
+            These are interaction prototypes for choosing a visual direction. The selected concept will be rebuilt as the production Next.js and shadcn interface.
+          </p>
+        </div>
+      </aside>
+
+      <main class="review-main">
+        <header class="review-toolbar">
+          <div>
+            <h1 id="preview-title">A · Evidence Command Center</h1>
+            <p>Final negotiation result screen · desktop and mobile responsive</p>
+          </div>
+          <a
+            class="open-preview"
+            id="open-preview"
+            href="concept-a-evidence-command.html"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open full screen
+          </a>
+        </header>
+
+        <div class="preview-frame-wrap">
+          <iframe
+            id="preview-frame"
+            src="concept-a-evidence-command.html"
+            title="A · Evidence Command Center"
+          ></iframe>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const frame = document.querySelector("#preview-frame");
+      const title = document.querySelector("#preview-title");
+      const openPreview = document.querySelector("#open-preview");
+      const buttons = [...document.querySelectorAll(".concept-button")];
+
+      function selectPreview(button) {
+        const preview = button.dataset.preview;
+        const nextTitle = button.dataset.title;
+
+        buttons.forEach((item) => {
+          item.setAttribute("aria-pressed", String(item === button));
+        });
+
+        frame.src = preview;
+        frame.title = nextTitle;
+        title.textContent = nextTitle;
+        openPreview.href = preview;
+      }
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => selectPreview(button));
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolicyScout - Evidence Command Center</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #10231d;
+        --muted: #63726c;
+        --canvas: #f3f6f2;
+        --paper: #ffffff;
+        --line: #d7ded9;
+        --line-strong: #aebdb6;
+        --green: #087763;
+        --green-dark: #075c4e;
+        --green-soft: #dff0ea;
+        --coral: #e35e45;
+        --coral-soft: #fbe7e2;
+        --blue: #276d8d;
+        --yellow: #f4c95d;
+        --shadow: 0 12px 34px rgba(20, 50, 40, 0.08);
+        --enter: cubic-bezier(0.22, 1, 0.36, 1);
+        --move: cubic-bezier(0.25, 1, 0.5, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--canvas);
+      }
+
+      body {
+        min-width: 320px;
+        min-height: 100vh;
+        margin: 0;
+        background:
+          linear-gradient(rgba(16, 35, 29, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(16, 35, 29, 0.025) 1px, transparent 1px),
+          var(--canvas);
+        background-size: 28px 28px;
+        color: var(--ink);
+        font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      a:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--green) 30%, transparent);
+        outline-offset: 2px;
+      }
+
+      .app-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 24px 18px 18px;
+        border-right: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(14px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 34px;
+      }
+
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--ink);
+        color: white;
+        font: 700 13px/1 Georgia, serif;
+      }
+
+      .brand-copy strong,
+      .brand-copy span {
+        display: block;
+      }
+
+      .brand-copy strong {
+        font-size: 14px;
+      }
+
+      .brand-copy span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+
+      .workflow-label {
+        margin: 0 0 10px 8px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .workflow {
+        display: grid;
+        gap: 3px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .workflow li {
+        min-height: 42px;
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) 16px;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: 6px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .workflow li.active {
+        background: var(--green-soft);
+        color: var(--green-dark);
+        font-weight: 800;
+      }
+
+      .step-index {
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: white;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .workflow li.complete .step-index,
+      .workflow li.active .step-index {
+        border-color: var(--green);
+        background: var(--green);
+        color: white;
+      }
+
+      .sidebar-footer {
+        margin-top: auto;
+        padding: 14px 8px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .avatar {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--coral-soft);
+        color: #8d3423;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .user-row strong,
+      .user-row span {
+        display: block;
+      }
+
+      .user-row strong {
+        font-size: 11px;
+      }
+
+      .user-row span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      main {
+        min-width: 0;
+        padding: 28px clamp(20px, 3vw, 46px) 46px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--green);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font: 600 clamp(26px, 3vw, 38px)/1.08 Georgia, "Times New Roman", serif;
+      }
+
+      .topbar-copy {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .provider-badge {
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 11px;
+        border: 1px solid #e7a898;
+        border-radius: 999px;
+        background: var(--coral-soft);
+        color: #813724;
+        font-size: 10px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .result-band {
+        position: relative;
+        display: grid;
+        grid-template-columns: 0.9fr 34px 1.1fr 0.8fr;
+        align-items: center;
+        gap: 20px;
+        padding: clamp(22px, 3vw, 34px);
+        overflow: hidden;
+        border: 1px solid #b9d6cc;
+        border-radius: 7px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+
+      .result-band::before {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 6px;
+        background: var(--green);
+        content: "";
+      }
+
+      .metric-label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .old-price {
+        color: #58645f;
+        font: 500 clamp(22px, 2.5vw, 32px)/1 Georgia, serif;
+        text-decoration: line-through;
+        text-decoration-color: var(--coral);
+        text-decoration-thickness: 2px;
+      }
+
+      .final-price {
+        display: flex;
+        align-items: baseline;
+        color: var(--green-dark);
+      }
+
+      .final-price strong {
+        font: 600 clamp(40px, 5vw, 66px)/0.95 Georgia, serif;
+      }
+
+      .final-price span {
+        margin-left: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .result-arrow {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: var(--canvas);
+        color: var(--green);
+      }
+
+      .savings-block {
+        padding-left: 22px;
+        border-left: 1px solid var(--line);
+      }
+
+      .savings-value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        color: var(--ink);
+      }
+
+      .savings-value strong {
+        font: 700 29px/1 Georgia, serif;
+      }
+
+      .savings-value span {
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .target-status {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--green-dark);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .target-status .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 0 4px var(--green-soft);
+      }
+
+      .content-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.75fr);
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .section {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--paper);
+      }
+
+      .section-header {
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .section-header h2 {
+        margin: 0;
+        font: 600 17px/1.2 Georgia, serif;
+      }
+
+      .section-header p {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .verified-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--green-dark);
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .audio-body {
+        padding: 18px;
+      }
+
+      .audio-controls {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .icon-button {
+        width: 42px;
+        height: 42px;
+        display: inline-grid;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        background: var(--ink);
+        color: white;
+        cursor: pointer;
+        transition:
+          background-color 160ms ease,
+          transform 140ms var(--enter);
+      }
+
+      .icon-button:hover {
+        background: var(--green);
+      }
+
+      .icon-button:active {
+        transform: scale(0.94);
+      }
+
+      .icon-slot {
+        width: 18px;
+        height: 18px;
+        display: grid;
+        place-items: center;
+      }
+
+      i[data-lucide]::before {
+        content: "▶";
+        font-size: 12px;
+      }
+
+      .icon-slot svg,
+      .inline-icon svg {
+        width: 17px;
+        height: 17px;
+        stroke-width: 2;
+      }
+
+      .wave-wrap {
+        min-width: 0;
+      }
+
+      .waveform {
+        height: 34px;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        overflow: hidden;
+      }
+
+      .wave-bar {
+        width: 3px;
+        height: var(--bar-height);
+        flex: 1 1 3px;
+        max-width: 5px;
+        border-radius: 4px;
+        background: #b8c7c1;
+        transform-origin: center;
+      }
+
+      .wave-bar.passed {
+        background: var(--green);
+      }
+
+      .waveform.is-playing .wave-bar:nth-child(4n + 1) {
+        animation: wave-pulse 820ms ease-in-out infinite alternate;
+      }
+
+      .waveform.is-playing .wave-bar:nth-child(4n + 2) {
+        animation: wave-pulse 690ms ease-in-out 120ms infinite alternate;
+      }
+
+      .waveform.is-playing .wave-bar:nth-child(4n + 3) {
+        animation: wave-pulse 930ms ease-in-out 80ms infinite alternate;
+      }
+
+      @keyframes wave-pulse {
+        to {
+          transform: scaleY(0.55);
+        }
+      }
+
+      .scrubber {
+        width: 100%;
+        height: 18px;
+        margin-top: 5px;
+        accent-color: var(--green);
+        cursor: pointer;
+      }
+
+      .audio-time {
+        color: var(--muted);
+        font: 700 10px/1.2 "SFMono-Regular", Consolas, monospace;
+        white-space: nowrap;
+      }
+
+      .audio-note {
+        margin: 10px 0 0 54px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .transcript-panel {
+        position: relative;
+        min-height: 172px;
+        margin: 16px 18px 18px;
+        padding: 17px 18px 18px 22px;
+        overflow: hidden;
+        border-left: 3px solid var(--green);
+        background: #f7faf8;
+      }
+
+      .transcript-panel.is-updating {
+        opacity: 0.35;
+        transform: translateY(4px);
+      }
+
+      .transcript-panel {
+        transition:
+          opacity 150ms ease,
+          transform 180ms var(--enter);
+      }
+
+      .transcript-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 12px;
+      }
+
+      .transcript-meta strong {
+        color: var(--green-dark);
+        font: 700 10px/1 "SFMono-Regular", Consolas, monospace;
+      }
+
+      .transcript-meta span {
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .line {
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr);
+        gap: 12px;
+        margin-top: 9px;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .line:first-of-type {
+        margin-top: 0;
+      }
+
+      .speaker {
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .line.outcome .quote {
+        color: var(--green-dark);
+        font-weight: 800;
+      }
+
+      .replay-section {
+        margin-top: 18px;
+      }
+
+      .replay-list {
+        display: grid;
+      }
+
+      .clip-row {
+        width: 100%;
+        min-height: 78px;
+        display: grid;
+        grid-template-columns: 42px 56px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 11px;
+        padding: 12px 16px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        background: white;
+        cursor: pointer;
+        text-align: left;
+        transition:
+          background-color 150ms ease,
+          box-shadow 180ms ease;
+      }
+
+      .clip-row:last-child {
+        border-bottom: 0;
+      }
+
+      .clip-row:hover {
+        background: #f7faf8;
+      }
+
+      .clip-row[aria-pressed="true"] {
+        background: var(--green-soft);
+        box-shadow: inset 4px 0 var(--green);
+      }
+
+      .clip-play {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 50%;
+        background: white;
+        color: var(--green-dark);
+      }
+
+      .clip-time {
+        color: var(--green-dark);
+        font: 800 11px/1 "SFMono-Regular", Consolas, monospace;
+      }
+
+      .clip-copy strong,
+      .clip-copy span {
+        display: block;
+      }
+
+      .clip-copy strong {
+        font-size: 12px;
+      }
+
+      .clip-copy span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.35;
+      }
+
+      .clip-impact {
+        min-width: 58px;
+        padding: 7px 8px;
+        border: 1px solid #abd1c5;
+        border-radius: 5px;
+        background: white;
+        color: var(--green-dark);
+        font-size: 10px;
+        font-weight: 900;
+        text-align: center;
+      }
+
+      .evidence-column {
+        display: grid;
+        align-content: start;
+        gap: 18px;
+      }
+
+      .evidence-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .evidence-list li {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        gap: 10px;
+        padding: 13px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .evidence-list li:last-child {
+        border-bottom: 0;
+      }
+
+      .evidence-icon {
+        width: 23px;
+        height: 23px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--green-soft);
+        color: var(--green-dark);
+      }
+
+      .evidence-list strong,
+      .evidence-list span {
+        display: block;
+      }
+
+      .evidence-list strong {
+        font-size: 11px;
+      }
+
+      .evidence-list span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 9px;
+        line-height: 1.45;
+      }
+
+      .coverage-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10px;
+      }
+
+      .coverage-table th,
+      .coverage-table td {
+        padding: 10px 15px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+      }
+
+      .coverage-table tr:last-child th,
+      .coverage-table tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .coverage-table th {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .same {
+        color: var(--green-dark);
+        font-weight: 900;
+      }
+
+      .disclosure {
+        padding: 15px 16px;
+      }
+
+      .disclosure-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 8px 0;
+        border-bottom: 1px dashed var(--line);
+        font-size: 10px;
+      }
+
+      .disclosure-row:last-child {
+        border-bottom: 0;
+      }
+
+      .disclosure-row span {
+        color: var(--muted);
+      }
+
+      .disclosure-row strong {
+        text-align: right;
+      }
+
+      .footer-note {
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 9px;
+        line-height: 1.45;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 1040px) {
+        .result-band {
+          grid-template-columns: 1fr 30px 1.25fr;
+        }
+
+        .savings-block {
+          grid-column: 1 / -1;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          padding: 16px 0 0;
+          border-top: 1px solid var(--line);
+          border-left: 0;
+        }
+
+        .savings-block .target-status {
+          margin-top: 0;
+        }
+
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .evidence-column {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .evidence-column .section:last-child {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .app-shell {
+          display: block;
+        }
+
+        .sidebar {
+          position: static;
+          width: 100%;
+          height: auto;
+          display: block;
+          padding: 14px 15px 10px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+          margin-bottom: 12px;
+        }
+
+        .workflow-label,
+        .sidebar-footer {
+          display: none;
+        }
+
+        .workflow {
+          display: flex;
+          gap: 6px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+
+        .workflow::-webkit-scrollbar {
+          display: none;
+        }
+
+        .workflow li {
+          min-width: max-content;
+          min-height: 34px;
+          grid-template-columns: 22px minmax(0, 1fr);
+          padding: 5px 8px;
+        }
+
+        .workflow li .inline-icon {
+          display: none;
+        }
+
+        .step-index {
+          width: 20px;
+          height: 20px;
+        }
+
+        main {
+          padding: 20px 14px 34px;
+        }
+
+        .topbar {
+          display: block;
+        }
+
+        .provider-badge {
+          margin-top: 12px;
+        }
+
+        .result-band {
+          grid-template-columns: 1fr;
+          gap: 17px;
+        }
+
+        .result-arrow {
+          width: 28px;
+          height: 28px;
+          transform: rotate(90deg);
+        }
+
+        .savings-block {
+          display: block;
+        }
+
+        .savings-block .target-status {
+          margin-top: 10px;
+        }
+
+        .evidence-column {
+          grid-template-columns: 1fr;
+        }
+
+        .evidence-column .section:last-child {
+          grid-column: auto;
+        }
+
+        .clip-row {
+          grid-template-columns: 36px 48px minmax(0, 1fr);
+        }
+
+        .clip-impact {
+          grid-column: 3;
+          justify-self: start;
+          margin-top: -4px;
+        }
+
+        .line {
+          grid-template-columns: 1fr;
+          gap: 3px;
+        }
+      }
+
+      @media (max-width: 470px) {
+        .audio-controls {
+          grid-template-columns: 42px minmax(0, 1fr);
+        }
+
+        .audio-time {
+          grid-column: 2;
+        }
+
+        .audio-note {
+          margin-left: 0;
+        }
+
+        .section-header {
+          align-items: flex-start;
+        }
+
+        .verified-chip {
+          max-width: 98px;
+          text-align: right;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">PS</div>
+          <div class="brand-copy">
+            <strong>PolicyScout</strong>
+            <span>Insurance negotiator</span>
+          </div>
+        </div>
+
+        <p class="workflow-label">Your quote journey</p>
+        <ol class="workflow">
+          <li class="complete"><span class="step-index">✓</span><span>Profile</span><span class="inline-icon"><i data-lucide="circle-check"></i></span></li>
+          <li class="complete"><span class="step-index">✓</span><span>Top 5 research</span><span class="inline-icon"><i data-lucide="circle-check"></i></span></li>
+          <li class="complete"><span class="step-index">✓</span><span>Quote calls</span><span class="inline-icon"><i data-lucide="circle-check"></i></span></li>
+          <li class="complete"><span class="step-index">✓</span><span>Your selection</span><span class="inline-icon"><i data-lucide="circle-check"></i></span></li>
+          <li class="complete"><span class="step-index">✓</span><span>Negotiation</span><span class="inline-icon"><i data-lucide="circle-check"></i></span></li>
+          <li class="active" aria-current="step"><span class="step-index">6</span><span>Final result</span><span class="inline-icon"><i data-lucide="flag"></i></span></li>
+        </ol>
+
+        <div class="sidebar-footer">
+          <div class="user-row">
+            <span class="avatar">AM</span>
+            <span><strong>Alex Morgan</strong><span>Auto profile · confirmed</span></span>
+          </div>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Negotiation complete · July 18, 2026</p>
+            <h1>Your verified result</h1>
+            <p class="topbar-copy">HarborShield improved the selected quote while preserving every requested coverage term.</p>
+          </div>
+          <span class="provider-badge"><i data-lucide="flask-conical"></i> HarborShield Auto · simulated provider</span>
+        </header>
+
+        <section class="result-band" aria-labelledby="result-heading">
+          <h2 id="result-heading" class="sr-only">Negotiated price result</h2>
+          <div>
+            <span class="metric-label">Selected quote</span>
+            <span class="old-price">$1,684 / year</span>
+          </div>
+          <span class="result-arrow" aria-hidden="true"><i data-lucide="arrow-right"></i></span>
+          <div>
+            <span class="metric-label">Negotiated final price</span>
+            <span class="final-price"><strong>$1,428</strong><span>/ year</span></span>
+          </div>
+          <div class="savings-block">
+            <span class="metric-label">Verified savings</span>
+            <span class="savings-value"><strong>$256</strong><span>15.2%</span></span>
+            <span class="target-status"><span class="dot"></span> Target achieved · under $1,450</span>
+          </div>
+        </section>
+
+        <div class="content-grid">
+          <div>
+            <section class="section" aria-labelledby="audio-heading">
+              <header class="section-header">
+                <div>
+                  <h2 id="audio-heading">Negotiation recording</h2>
+                  <p>Full call · 6:42 · transcript synchronized</p>
+                </div>
+                <span class="verified-chip"><i data-lucide="badge-check"></i> Transcript verified</span>
+              </header>
+              <div class="audio-body">
+                <div class="audio-controls">
+                  <button class="icon-button" id="full-play" type="button" aria-label="Play full negotiation">
+                    <span class="icon-slot" aria-hidden="true"><i data-lucide="play"></i></span>
+                  </button>
+                  <div class="wave-wrap">
+                    <div class="waveform" id="waveform" aria-hidden="true"></div>
+                    <input class="scrubber" id="scrubber" type="range" min="0" max="402" value="134" aria-label="Negotiation recording position" />
+                  </div>
+                  <span class="audio-time"><span id="current-time">02:14</span> / 06:42</span>
+                </div>
+                <p class="audio-note">Prototype voice playback uses your browser voice. Production uses the ElevenLabs conversation recording.</p>
+              </div>
+
+              <div class="transcript-panel" id="transcript-panel" aria-live="polite">
+                <div class="transcript-meta">
+                  <strong id="active-time">02:14</strong>
+                  <span id="active-label">Verified leverage</span>
+                </div>
+                <div class="line">
+                  <span class="speaker">PolicyScout</span>
+                  <span class="quote" id="agent-line">We have a verified $1,472 quote for the same 100/300/100 limits and deductibles. Is there a loyalty or safe-driver adjustment available without changing coverage?</span>
+                </div>
+                <div class="line outcome">
+                  <span class="speaker">HarborShield</span>
+                  <span class="quote" id="provider-line">I can apply the safe-driver review and bring the annual premium to $1,546, with the coverage unchanged.</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="section replay-section" aria-labelledby="replay-heading">
+              <header class="section-header">
+                <div>
+                  <h2 id="replay-heading">Good negotiation replay</h2>
+                  <p>Three moments that directly changed the outcome</p>
+                </div>
+                <span class="verified-chip"><i data-lucide="sparkles"></i> $256 total impact</span>
+              </header>
+              <div class="replay-list">
+                <button class="clip-row" type="button" data-clip="0" aria-pressed="true">
+                  <span class="clip-play"><i data-lucide="play"></i></span>
+                  <span class="clip-time">02:14</span>
+                  <span class="clip-copy"><strong>Used verified competing leverage</strong><span>Same coverage and specification hash kept the comparison truthful.</span></span>
+                  <span class="clip-impact">−$138</span>
+                </button>
+                <button class="clip-row" type="button" data-clip="1" aria-pressed="false">
+                  <span class="clip-play"><i data-lucide="play"></i></span>
+                  <span class="clip-time">04:08</span>
+                  <span class="clip-copy"><strong>Asked for eligible discounts</strong><span>The agent surfaced a verified telematics enrollment credit.</span></span>
+                  <span class="clip-impact">−$74</span>
+                </button>
+                <button class="clip-row" type="button" data-clip="2" aria-pressed="false">
+                  <span class="clip-play"><i data-lucide="play"></i></span>
+                  <span class="clip-time">05:36</span>
+                  <span class="clip-copy"><strong>Closed against the target range</strong><span>A precise final ask won an additional supervisor-approved adjustment.</span></span>
+                  <span class="clip-impact">−$44</span>
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <aside class="evidence-column" aria-label="Result evidence">
+            <section class="section">
+              <header class="section-header">
+                <div><h2>Verified outcome</h2><p>Four checks passed</p></div>
+              </header>
+              <ul class="evidence-list">
+                <li><span class="evidence-icon"><i data-lucide="shield-check"></i></span><span><strong>Coverage unchanged</strong><span>Limits, deductibles, and endorsements match the confirmed request.</span></span></li>
+                <li><span class="evidence-icon"><i data-lucide="fingerprint"></i></span><span><strong>Same specification</strong><span>Quote and leverage share request hash PS-AUTO-7F31.</span></span></li>
+                <li><span class="evidence-icon"><i data-lucide="file-audio"></i></span><span><strong>Price confirmed in call</strong><span>Final premium captured at 06:11 and stored with transcript evidence.</span></span></li>
+                <li><span class="evidence-icon"><i data-lucide="target"></i></span><span><strong>Target respected</strong><span>Your private ceiling was never disclosed; only the approved range was used.</span></span></li>
+              </ul>
+            </section>
+
+            <section class="section">
+              <header class="section-header"><div><h2>Coverage check</h2><p>Before vs. after</p></div></header>
+              <table class="coverage-table">
+                <tbody>
+                  <tr><th>Liability</th><td>100/300/100</td><td class="same">Same</td></tr>
+                  <tr><th>Collision</th><td>$500 deductible</td><td class="same">Same</td></tr>
+                  <tr><th>Comprehensive</th><td>$500 deductible</td><td class="same">Same</td></tr>
+                  <tr><th>Roadside</th><td>Included</td><td class="same">Same</td></tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="section">
+              <header class="section-header"><div><h2>Disclosure log</h2><p>What the negotiator shared</p></div></header>
+              <div class="disclosure">
+                <div class="disclosure-row"><span>Competing quote</span><strong>$1,472 · verified</strong></div>
+                <div class="disclosure-row"><span>Approved target language</span><strong>“Below $1,450”</strong></div>
+                <div class="disclosure-row"><span>Private ceiling</span><strong>Not disclosed</strong></div>
+                <div class="disclosure-row"><span>Call evidence</span><strong>Recording + transcript</strong></div>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        <p class="footer-note">PolicyScout is an AI insurance shopping assistant. It gathers and compares simulated or preliminary quotes but cannot bind coverage or replace a licensed insurance professional.</p>
+      </main>
+    </div>
+
+    <script>
+      const clips = [
+        {
+          time: 134,
+          timestamp: "02:14",
+          label: "Verified leverage",
+          agent: "We have a verified $1,472 quote for the same 100/300/100 limits and deductibles. Is there a loyalty or safe-driver adjustment available without changing coverage?",
+          provider: "I can apply the safe-driver review and bring the annual premium to $1,546, with the coverage unchanged."
+        },
+        {
+          time: 248,
+          timestamp: "04:08",
+          label: "Discount discovery",
+          agent: "Before we close, can you check every discount this confirmed profile is eligible for, including telematics enrollment?",
+          provider: "The driver qualifies for our monitored-driving credit. That reduces the annual price to $1,472 after enrollment."
+        },
+        {
+          time: 336,
+          timestamp: "05:36",
+          label: "Targeted final ask",
+          agent: "If HarborShield can reach the approved range below $1,450 today, the customer is ready to take this offer to a licensed agent for review.",
+          provider: "I received a final approval for $1,428 annually. All requested coverage remains unchanged."
+        }
+      ];
+
+      const duration = 402;
+      const waveform = document.querySelector("#waveform");
+      const scrubber = document.querySelector("#scrubber");
+      const currentTime = document.querySelector("#current-time");
+      const fullPlay = document.querySelector("#full-play");
+      const transcriptPanel = document.querySelector("#transcript-panel");
+      const clipRows = [...document.querySelectorAll(".clip-row")];
+      let playing = false;
+      let timer = null;
+      let activeClip = 0;
+
+      function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remaining = Math.floor(seconds % 60);
+        return `${String(minutes).padStart(2, "0")}:${String(remaining).padStart(2, "0")}`;
+      }
+
+      function buildWaveform() {
+        const heights = [28, 46, 70, 38, 82, 54, 32, 64, 90, 46, 72, 36, 58, 86, 42, 62, 34, 76, 48, 92, 56, 38, 68, 44, 84, 52, 30, 74, 60, 40, 88, 50, 66, 34, 78, 46, 94, 58, 36, 70, 48, 82, 54, 32, 64, 90, 44, 72, 38, 58, 86, 46, 68, 34, 80, 50, 92, 56, 40, 74];
+        heights.forEach((height) => {
+          const bar = document.createElement("span");
+          bar.className = "wave-bar";
+          bar.style.setProperty("--bar-height", `${height}%`);
+          waveform.appendChild(bar);
+        });
+        updateWaveProgress(Number(scrubber.value));
+      }
+
+      function updateWaveProgress(seconds) {
+        const bars = [...waveform.children];
+        const passed = Math.round((seconds / duration) * bars.length);
+        bars.forEach((bar, index) => bar.classList.toggle("passed", index < passed));
+      }
+
+      function renderIcon(button, name) {
+        const slot = button.querySelector(".icon-slot");
+        slot.innerHTML = `<i data-lucide="${name}"></i>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function setPlaying(next) {
+        playing = next;
+        waveform.classList.toggle("is-playing", playing);
+        renderIcon(fullPlay, playing ? "pause" : "play");
+        fullPlay.setAttribute("aria-label", playing ? "Pause negotiation" : "Play full negotiation");
+
+        if (timer) window.clearInterval(timer);
+        if (playing) {
+          timer = window.setInterval(() => {
+            let nextValue = Number(scrubber.value) + 1;
+            if (nextValue > duration) nextValue = 0;
+            scrubber.value = String(nextValue);
+            syncTime(nextValue);
+          }, 1000);
+        }
+      }
+
+      function syncTime(seconds) {
+        currentTime.textContent = formatTime(seconds);
+        updateWaveProgress(seconds);
+      }
+
+      function speakClip(clip) {
+        if (!("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(`PolicyScout: ${clip.agent} HarborShield: ${clip.provider}`);
+        utterance.rate = 0.98;
+        utterance.pitch = 0.96;
+        utterance.onend = () => setPlaying(false);
+        utterance.onerror = () => setPlaying(false);
+        window.speechSynthesis.speak(utterance);
+      }
+
+      function selectClip(index, shouldSpeak = true) {
+        activeClip = index;
+        const clip = clips[index];
+        clipRows.forEach((row, rowIndex) => row.setAttribute("aria-pressed", String(rowIndex === index)));
+        transcriptPanel.classList.add("is-updating");
+        window.setTimeout(() => {
+          document.querySelector("#active-time").textContent = clip.timestamp;
+          document.querySelector("#active-label").textContent = clip.label;
+          document.querySelector("#agent-line").textContent = clip.agent;
+          document.querySelector("#provider-line").textContent = clip.provider;
+          transcriptPanel.classList.remove("is-updating");
+        }, 150);
+        scrubber.value = String(clip.time);
+        syncTime(clip.time);
+        setPlaying(shouldSpeak);
+        if (shouldSpeak) speakClip(clip);
+      }
+
+      fullPlay.addEventListener("click", () => {
+        if (playing) {
+          setPlaying(false);
+          if ("speechSynthesis" in window) window.speechSynthesis.pause();
+        } else {
+          setPlaying(true);
+          if ("speechSynthesis" in window && window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          } else {
+            speakClip(clips[activeClip]);
+          }
+        }
+      });
+
+      scrubber.addEventListener("input", (event) => syncTime(Number(event.target.value)));
+      clipRows.forEach((row) => row.addEventListener("click", () => selectClip(Number(row.dataset.clip))));
+
+      buildWaveform();
+      if (window.lucide) window.lucide.createIcons();
+    </script>
+  </body>
+</html>
