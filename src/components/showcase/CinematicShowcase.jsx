@@ -143,12 +143,12 @@ export function CinematicShowcase({ onSkip, onLogin }) {
   const skipOpacity = interpolate(scrollProgress, [0, 0.75, 0.84], [1, 1, 0]);
 
   return (
-    <section className="cinematic" ref={stageRef} aria-label="PolicyScout product introduction">
+    <section className="cinematic" ref={stageRef} aria-label="StayScout product introduction">
       <div className="cinematic-sticky">
         <header className="showcase-nav" style={{ opacity: navOpacity }}>
-          <button className="brand-lockup" type="button" style={{ opacity: logoOpacity, pointerEvents: logoOpacity < 0.05 ? "none" : "auto" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="PolicyScout home">
+          <button className="brand-lockup" type="button" style={{ opacity: logoOpacity, pointerEvents: logoOpacity < 0.05 ? "none" : "auto" }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="StayScout home">
             <span className="brand-mark" aria-hidden="true" />
-            <span>PolicyScout</span>
+            <span>StayScout</span>
           </button>
           <nav className="showcase-links" aria-label="Primary navigation">
             <button type="button" onClick={onSkip}>Product <CaretDown size={13} weight="bold" /></button>
@@ -180,8 +180,8 @@ export function CinematicShowcase({ onSkip, onLogin }) {
         </div>
 
         <div className="cinematic-copy cinematic-copy--hero" style={{ opacity: heroCopyOpacity }}>
-          <h1>Your insurance<br />Finally negotiated.</h1>
-          <p className="hero-support">PolicyScout compares top matched quotes,<br />then calls for the best price.</p>
+          <h1>Your group hotel rates<br />Finally negotiated.</h1>
+          <p className="hero-support">StayScout compares top matched hotels,<br />then calls for the best group rate.</p>
           <div className="hero-actions">
             <button className="primary-button primary-button--mint" type="button" onClick={onSkip}>
               Try live demo <ArrowRight size={18} weight="bold" />
@@ -191,8 +191,8 @@ export function CinematicShowcase({ onSkip, onLogin }) {
         </div>
 
         <div className="cinematic-copy cinematic-copy--phase" style={{ opacity: followCopyOpacity }}>
-          <h2>We call the market.<br />You stay in control.</h2>
-          <p>Same coverage, better prices in one dashboard.</p>
+          <h2>We call the hotels.<br />You stay in control.</h2>
+          <p>Same stay details, better nightly rates in one dashboard.</p>
         </div>
 
         <div className="cinematic-copy cinematic-copy--phase" style={{ opacity: cockpitCopyOpacity }}>

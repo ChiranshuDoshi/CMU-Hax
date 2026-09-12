@@ -158,7 +158,15 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
       },
       onMessage: ({ message, role }) => {
         if (!message) return;
-        setCaptions((current) => [...current.slice(-6), { role, message }]);
+        // Update the open turn in place — STT/agent events re-send the full line.
+        setCaptions((current) => {
+          const last = current[current.length - 1];
+          if (last?.role === role) {
+            if (last.message === message) return current;
+            return [...current.slice(0, -1), { role, message }];
+          }
+          return [...current.slice(-6), { role, message }];
+        });
         if (role === "agent") {
           const normalized = message.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
           if (normalized.length > 90) {
@@ -201,11 +209,11 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
     sessionRef.current?.setMuted(next);
   }
 
-  const providerName = negotiation?.providerName ?? "Insurance provider";
+  const providerName = negotiation?.providerName ?? "Hotel sales";
   const lastCaption = captions[captions.length - 1];
   const statusText =
     phase === "incoming"
-      ? "PolicyScout Negotiator — incoming call"
+      ? "StayScout Negotiator — incoming call"
       : phase === "connecting"
         ? "Connecting…"
         : phase === "active"
@@ -213,16 +221,16 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
           : "Call ended · preparing your results";
 
   return (
-    <div style={overlayStyle} role="dialog" aria-modal="true" aria-label="PolicyScout negotiation call">
+    <div style={overlayStyle} role="dialog" aria-modal="true" aria-label="StayScout negotiation call">
       <div>
-        <p style={{ margin: 0, opacity: 0.7, fontSize: 14, letterSpacing: 0.4 }}>PolicyScout · Grok Voice</p>
-        <div style={avatarStyle} aria-hidden="true">PS</div>
-        <h2 style={{ margin: "0 0 6px", fontSize: 30, fontWeight: 600 }}>PolicyScout Negotiator</h2>
+        <p style={{ margin: 0, opacity: 0.7, fontSize: 14, letterSpacing: 0.4 }}>StayScout · Grok Voice</p>
+        <div style={avatarStyle} aria-hidden="true">SS</div>
+        <h2 style={{ margin: "0 0 6px", fontSize: 30, fontWeight: 600 }}>StayScout Negotiator</h2>
         <p style={{ margin: 0, opacity: 0.82, fontSize: 16 }}>{statusText}</p>
         <p style={{ margin: "6px 0 0", opacity: 0.6, fontSize: 14 }}>Negotiating against {providerName}</p>
         {phase === "incoming" && (
           <p style={{ margin: "18px auto 0", maxWidth: 320, opacity: 0.72, fontSize: 13, lineHeight: 1.5 }}>
-            Answer and role-play the insurance rep. The agent will negotiate your quote down — try to hold your price, then give ground.
+            Answer and role-play hotel sales. The agent will negotiate your nightly group rate down — try to hold your price, then give ground.
           </p>
         )}
       </div>
@@ -234,7 +242,7 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
           </p>
         )}
         {phase === "active" && !lastCaption && (
-          <p style={{ margin: 0, opacity: 0.6 }}>Listening… say hello as the insurance rep.</p>
+          <p style={{ margin: 0, opacity: 0.6 }}>Listening… say hello as hotel sales.</p>
         )}
         {phase === "ended" && (
           <p style={{ margin: 0, display: "inline-flex", gap: 10, alignItems: "center", opacity: 0.85 }}>

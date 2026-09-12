@@ -1,4 +1,4 @@
-// Browser client for the PolicyScout BFF (same-origin). Every call returns the
+// Browser client for the StayScout BFF (same-origin). Every call returns the
 // `{ snapshot }` envelope (or throws with the server's error message).
 
 async function post(path, body) {
@@ -34,18 +34,28 @@ export const api = {
   },
 };
 
-/** Maps the messy vehicle form fields into the API's CarProfile payload. */
+/** Maps stay-profile form fields into the API's CarProfile payload. */
 export function toCarProfile(profile, bodyType) {
   const digits = (value) => String(value ?? "").replace(/[^\d]/g, "");
-  const premiumDigits = digits(profile.premium);
+  const firstNumber = (value) => {
+    const match = String(value ?? "").match(/\d+/);
+    return match ? match[0] : "";
+  };
+  const rooms = digits(profile.rooms) || digits(profile.mileage);
+  const premiumDigits = firstNumber(profile.premium) || firstNumber(profile.budget);
+  const locationCity = String(profile.location || profile.make || "Chicago")
+    .split(",")[0]
+    .trim() || "Chicago";
+  const model = (bodyType || profile.model || "Deluxe").trim();
+
   return {
-    year: Number(digits(profile.year)) || undefined,
-    make: (profile.make || "").trim(),
-    model: (profile.model || "").trim(),
-    bodyType: bodyType || undefined,
-    state: (profile.state || "TX").trim().toUpperCase().slice(0, 2),
-    zipCode: digits(profile.zip).slice(0, 5),
-    annualMileage: Number(digits(profile.mileage)) || undefined,
+    year: Number(digits(profile.year)) || 2024,
+    make: locationCity,
+    model,
+    bodyType: bodyType || model || undefined,
+    state: (profile.state || "IL").trim().toUpperCase().slice(0, 2),
+    zipCode: digits(profile.zip).slice(0, 5) || "60601",
+    annualMileage: Number(rooms) || undefined,
     currentPremiumCents: premiumDigits ? Number(premiumDigits) * 100 : null,
   };
 }

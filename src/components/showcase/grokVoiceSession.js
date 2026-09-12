@@ -71,18 +71,102 @@ export function createGrokVoiceSession({
     return Math.max(0, (Date.now() - startedAt) / 1000);
   }
 
-  function pushTranscript(role, message) {
-    const text = String(message ?? "").trim();
-    if (!text) return;
+  function emitMessage(role, message) {
+    onMessage?.({ role, message });
+  }
+
+  /** Agent audio transcript arrives as small deltas — append into the open turn. */
+  function appendAgentDelta(delta) {
+    const chunk = String(delta ?? "");
+    if (!chunk) return;
     const last = transcript[transcript.length - 1];
-    if (last && last.role === role) {
-      last.message = `${last.message}${text}`.replace(/\s+/g, " ").trim();
-      onMessage?.({ role, message: last.message });
+    if (last?.role === "agent" && !last.final) {
+      last.message = `${last.message}${chunk}`.replace(/\s+/g, " ").trim();
+      emitMessage("agent", last.message);
       return;
     }
-    const entry = { role, message: text, timeInCallSecs: timeInCallSecs() };
-    transcript.push(entry);
-    onMessage?.({ role, message: text });
+    transcript.push({
+      role: "agent",
+      message: chunk.trim(),
+      timeInCallSecs: timeInCallSecs(),
+      final: false,
+    });
+    emitMessage("agent", chunk.trim());
+  }
+
+  function finalizeAgentTranscript(fullText) {
+    const text = String(fullText ?? "").trim();
+    if (!text) return;
+    const last = transcript[transcript.length - 1];
+    if (last?.role === "agent") {
+      last.message = text;
+      last.final = true;
+      emitMessage("agent", text);
+      return;
+    }
+    transcript.push({
+      role: "agent",
+      message: text,
+      timeInCallSecs: timeInCallSecs(),
+      final: true,
+    });
+    emitMessage("agent", text);
+  }
+
+  /**
+   * User STT "updated"/"completed" send the full utterance so far (not deltas).
+   * Replacing avoids "hello hello" when both fire with the same text.
+   */
+  function upsertUserTranscript(fullText, { final = false } = {}) {
+    const text = String(fullText ?? "").trim();
+    if (!text) return;
+    const last = transcript[transcript.length - 1];
+    if (last?.role === "user" && !last.final) {
+      if (text === last.message) {
+        if (final) last.final = true;
+        emitMessage("user", last.message);
+        return;
+      }
+      // Prefer the longer progressive transcript; ignore stale shorter updates.
+      if (text.startsWith(last.message) || last.message.startsWith(text)) {
+        last.message = text.length >= last.message.length ? text : last.message;
+      } else {
+        last.message = text;
+      }
+      if (final) last.final = true;
+      emitMessage("user", last.message);
+      return;
+    }
+    if (last?.role === "user" && last.final && last.message === text) {
+      emitMessage("user", text);
+      return;
+    }
+    transcript.push({
+      role: "user",
+      message: text,
+      timeInCallSecs: timeInCallSecs(),
+      final,
+    });
+    emitMessage("user", text);
+  }
+
+  /** True incremental STT chunks (delta events) — append into the open user turn. */
+  function appendUserDelta(delta) {
+    const chunk = String(delta ?? "");
+    if (!chunk) return;
+    const last = transcript[transcript.length - 1];
+    if (last?.role === "user" && !last.final) {
+      last.message = `${last.message}${chunk}`.replace(/\s+/g, " ").trim();
+      emitMessage("user", last.message);
+      return;
+    }
+    transcript.push({
+      role: "user",
+      message: chunk.trim(),
+      timeInCallSecs: timeInCallSecs(),
+      final: false,
+    });
+    emitMessage("user", chunk.trim());
   }
 
   function send(event) {
@@ -176,20 +260,19 @@ export function createGrokVoiceSession({
         break;
       }
       case "response.output_audio_transcript.delta":
-        if (event.delta) pushTranscript("agent", event.delta);
+        if (event.delta) appendAgentDelta(event.delta);
         break;
       case "response.output_audio_transcript.done":
-        if (event.transcript) {
-          const last = transcript[transcript.length - 1];
-          if (last?.role === "agent") last.message = String(event.transcript).trim();
-          else pushTranscript("agent", event.transcript);
-        }
+        if (event.transcript) finalizeAgentTranscript(event.transcript);
         break;
       case "conversation.item.input_audio_transcription.completed":
-        if (event.transcript) pushTranscript("user", event.transcript);
+        if (event.transcript) upsertUserTranscript(event.transcript, { final: true });
+        break;
+      case "conversation.item.input_audio_transcription.delta":
+        if (event.delta) appendUserDelta(event.delta);
         break;
       case "conversation.item.input_audio_transcription.updated":
-        if (event.transcript) onMessage?.({ role: "user", message: event.transcript });
+        if (event.transcript) upsertUserTranscript(event.transcript, { final: false });
         break;
       case "response.function_call_arguments.done":
         void handleToolCall(event);
@@ -254,7 +337,8 @@ export function createGrokVoiceSession({
 
   return {
     getSessionId: () => sessionId,
-    getTranscript: () => transcript.map((entry) => ({ ...entry })),
+    getTranscript: () =>
+      transcript.map(({ role, message, timeInCallSecs }) => ({ role, message, timeInCallSecs })),
     async start() {
       await connect();
       await startMic();

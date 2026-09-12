@@ -34,7 +34,7 @@ PolicyScout is a hackathon prototype, not an insurance carrier, broker, quoting 
 
 - Node.js 20 or newer
 - Corepack (included with supported Node.js releases) to use the repository's pnpm version
-- An Upstash Redis database to run the signed-in workflow end to end
+- An Upstash Redis database is optional; without it the app uses in-memory storage for local demos
 
 Clone and install the project:
 
@@ -45,9 +45,10 @@ corepack enable
 corepack pnpm install --frozen-lockfile
 ```
 
-Create a `.env.local` file in the repository root. For the complete local workflow, add your Upstash Redis REST credentials:
+Create a `.env.local` file in the repository root if you want live integrations (Querit, Grok Voice, IFM). Redis is optional:
 
 ```dotenv
+# Optional — omit to use in-memory local demo storage
 UPSTASH_REDIS_REST_URL=https://<your-database>.upstash.io
 UPSTASH_REDIS_REST_TOKEN=<your-token>
 ```
@@ -60,7 +61,7 @@ corepack pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000). Create the demo account from the page, fill in the vehicle profile, and run the simulated workflow.
 
-Without Redis, the public showcase still loads, but account creation and the persisted application workflow return a configuration error.
+Without Redis, accounts and workflows live in process memory (fine for `pnpm dev`; cleared on server restart).
 
 ## Configuration
 
@@ -68,8 +69,8 @@ All secrets stay server-side. Do not commit `.env`, `.env.local`, generated `.ar
 
 | Variable | Needed for | Notes |
 | --- | --- | --- |
-| `UPSTASH_REDIS_REST_URL` | End-to-end application workflow | Required with the token below. `KV_REST_API_URL` is also supported. |
-| `UPSTASH_REDIS_REST_TOKEN` | End-to-end application workflow | Required with the URL above. `KV_REST_API_TOKEN` is also supported. Workflow records expire after seven days. |
+| `UPSTASH_REDIS_REST_URL` | Durable workflow storage | Optional. With the token below, uses Upstash. Without Redis, local demos use in-memory storage. |
+| `UPSTASH_REDIS_REST_TOKEN` | Durable workflow storage | Optional. Required with the URL above. `KV_REST_API_*` aliases are also supported. |
 | `QUERIT_API_KEY` | Live market research search | Optional. Preferred over Tavily when set. Server-only. |
 | `QUERIT_BASE_URL` | Querit API base | Optional. Defaults to `https://api.querit.ai/v1`. |
 | `TAVILY_API_KEY` | Live provider research (fallback) | Optional. Used when Querit is not configured. |
@@ -77,7 +78,7 @@ All secrets stay server-side. Do not commit `.env`, `.env.local`, generated `.ar
 | `IFM_MODEL` | IFM model id | Optional. Defaults to `IFM/K2-Horizon-375B-A23B`. |
 | `IFM_BASE_URL` | IFM API base | Optional. Defaults to `https://api.ifm.ai/v1`. |
 | `XAI_API_KEY` | In-app Grok Voice negotiation | Optional. Keep it server-only. Enables the live browser negotiation call. |
-| `XAI_NEGOTIATOR_VOICE` | Grok Voice persona | Optional. Defaults to `rex` (`eve`, `ara`, `rex`, `sal`, `leo`, or a custom voice id). |
+| `XAI_NEGOTIATOR_VOICE` | Grok Voice persona | Optional. Defaults to `atlas`. |
 | `ELEVENLABS_API_KEY` | Dev / quote-collection ElevenLabs flows | Optional. Keep it server-only. Not used by the main showcase negotiator. |
 | `ELEVENLABS_NEGOTIATOR_AGENT_ID` | Legacy ElevenLabs negotiation scripts | Created by the ElevenLabs setup script. |
 | `ELEVENLABS_VOICE_SMOKE_AGENT_ID` | ElevenLabs voice smoke test | Created by the ElevenLabs setup script. |
