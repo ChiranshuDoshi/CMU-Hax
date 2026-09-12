@@ -13,12 +13,12 @@ const HOTEL_IMAGES = [
 
 // Tints for the monogram fallback shown until the photo decodes.
 const HOTEL_TINTS = [
-  "linear-gradient(135deg, #1f3d3a, #3c6f64)",
   "linear-gradient(135deg, #3a2f24, #7a5c3c)",
+  "linear-gradient(135deg, #2a2019, #b8893d)",
   "linear-gradient(135deg, #1d2b3a, #40607f)",
   "linear-gradient(135deg, #2e2338, #5f4a72)",
   "linear-gradient(135deg, #3a241f, #8a5341)",
-  "linear-gradient(135deg, #1c3330, #35705f)",
+  "linear-gradient(135deg, #1a140c, #8a6425)",
 ];
 
 function hashName(name) {

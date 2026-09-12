@@ -3,7 +3,7 @@
  * Used to hang up after the closing line, not mid-ask.
  */
 
-const OPENING = /^hi[,.]?\s+i(?:'m| am) stayscout\b/i;
+const OPENING = /^hi[,.]?\s+i(?:'m| am) atrium\b/i;
 const QUESTION = /\?/;
 const STILL_ASKING =
   /\b(?:if you can|can you|could you|would you|what (?:can|about)|how (?:much|low)|any (?:room|flexibility))\b/i;

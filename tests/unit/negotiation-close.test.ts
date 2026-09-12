@@ -22,7 +22,7 @@ describe("looksLikeNegotiationClose", () => {
   it("rejects the opening line", () => {
     expect(
       looksLikeNegotiationClose(
-        "Hi, I'm StayScout, calling on behalf of the group. What can you do to lower the nightly price?",
+        "Hi, I'm Atrium, calling on behalf of the group. What can you do to lower the nightly price?",
       ),
     ).toBe(false);
   });

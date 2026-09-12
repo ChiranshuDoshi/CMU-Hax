@@ -20,7 +20,7 @@ const overlayStyle = {
   justifyContent: "space-between",
   padding: "72px 24px 56px",
   color: "#fff",
-  background: "radial-gradient(120% 80% at 50% -10%, #2b3a37 0%, #131b1a 45%, #05090880 75%), rgba(4,8,7,0.72)",
+  background: "radial-gradient(120% 80% at 50% -10%, #3a2e22 0%, #1a140c 45%, #120e0b80 75%), rgba(18,14,11,0.72)",
   backdropFilter: "blur(22px)",
   WebkitBackdropFilter: "blur(22px)",
   textAlign: "center",
@@ -30,7 +30,7 @@ const avatarStyle = {
   width: 116,
   height: 116,
   borderRadius: "50%",
-  background: "linear-gradient(160deg, #0e8f80, #075e56)",
+  background: "linear-gradient(160deg, #dcb978, #8a6425)",
   display: "grid",
   placeItems: "center",
   fontSize: 44,
@@ -195,7 +195,7 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
   const lastCaption = captions[captions.length - 1];
   const statusText =
     phase === "incoming"
-      ? "StayScout Negotiator — incoming call"
+      ? "Atrium — incoming call"
       : phase === "connecting"
         ? "Connecting…"
         : phase === "active"
@@ -203,11 +203,11 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
           : "Call ended";
 
   return (
-    <div style={overlayStyle} role="dialog" aria-modal="true" aria-label="StayScout negotiation call">
+    <div style={overlayStyle} role="dialog" aria-modal="true" aria-label="Atrium negotiation call">
       <div>
-        <p style={{ margin: 0, opacity: 0.7, fontSize: 14, letterSpacing: 0.4 }}>StayScout Negotiator</p>
-        <div style={avatarStyle} aria-hidden="true">SS</div>
-        <h2 style={{ margin: "0 0 6px", fontSize: 30, fontWeight: 600 }}>StayScout Negotiator</h2>
+        <p style={{ margin: 0, opacity: 0.7, fontSize: 14, letterSpacing: 0.4 }}>Atrium</p>
+        <div style={avatarStyle} aria-hidden="true">A</div>
+        <h2 style={{ margin: "0 0 6px", fontSize: 30, fontWeight: 600 }}>Atrium</h2>
         <p style={{ margin: 0, opacity: 0.82, fontSize: 16 }}>{statusText}</p>
         <p style={{ margin: "6px 0 0", opacity: 0.6, fontSize: 14 }}>Negotiating against {providerName}</p>
         {phase === "incoming" && (
@@ -241,7 +241,7 @@ function IosCall({ callContext, negotiation, onConnected, onEnded, onError }) {
               <span>Decline</span>
             </div>
             <div style={buttonColumn}>
-              <button type="button" style={circleButton("#34c759")} onClick={() => void answer()} aria-label="Answer call"><Phone size={30} weight="fill" /></button>
+              <button type="button" style={circleButton("#b8893d")} onClick={() => void answer()} aria-label="Answer call"><Phone size={30} weight="fill" /></button>
               <span>Answer</span>
             </div>
           </>

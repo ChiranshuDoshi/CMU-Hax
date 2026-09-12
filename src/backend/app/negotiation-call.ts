@@ -70,10 +70,10 @@ export interface NegotiatorSessionVars {
 
 export function buildNegotiatorInstructions(vars: NegotiatorSessionVars): string {
   const open =
-    `Hi, I'm StayScout, calling on behalf of ${vars.userDisplayName}. ` +
+    `Hi, I'm Atrium, calling on behalf of ${vars.userDisplayName}. ` +
     `We're reviewing ${vars.providerName}'s group rate—what can you do to lower the nightly price without changing the stay details?`;
 
-  return `You are StayScout, negotiating ${vars.providerName}'s group hotel booking on behalf of ${vars.userDisplayName}.
+  return `You are Atrium, negotiating ${vars.providerName}'s group hotel booking on behalf of ${vars.userDisplayName}.
 Improve the per-room nightly group rate without changing dates, room count, or inclusions. Price first; then free breakfast, amenity fees, late checkout, or sales-manager review.
 
 Context (provider-safe only — never invent beyond this):

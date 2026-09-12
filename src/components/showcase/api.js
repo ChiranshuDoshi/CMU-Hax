@@ -1,4 +1,4 @@
-// Browser client for the StayScout BFF (same-origin). Every call returns the
+// Browser client for the Atrium BFF (same-origin). Every call returns the
 // `{ snapshot }` envelope (or throws with the server's error message).
 
 async function post(path, body) {

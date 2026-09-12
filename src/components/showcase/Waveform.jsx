@@ -12,8 +12,8 @@ export function Waveform({
   active = false,
   progress = 0.62,
   compact = false,
-  playedColor = "#71e0c1",
-  unplayedColor = "rgba(213, 226, 221, 0.28)",
+  playedColor = "#b8893d",
+  unplayedColor = "rgba(92, 78, 64, 0.24)",
   label = "Negotiation audio waveform",
 }) {
   const canvasRef = useRef(null);

@@ -68,7 +68,7 @@ function makeSources(
       title: `${provider.name} fictional traveler rating`,
       url: ratingUrl,
       domain: "ratings.example.org",
-      publisher: "StayScout Demo Ratings",
+      publisher: "Atrium Demo Ratings",
       retrievedAt,
       publishedAt: dateDaysBefore(retrievedAt, provider.ratingAgeDays),
       excerpt: `Fictional demo rating: ${provider.rating} out of 5 from ${provider.reviews} reviews.`,

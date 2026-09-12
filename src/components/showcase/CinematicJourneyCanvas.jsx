@@ -104,7 +104,7 @@ export function CinematicJourneyCanvas({ progress, reducedMotion }) {
       animationFrame = 0;
       if (!ready) return;
       context.setTransform(1, 0, 0, 1, 0, 0);
-      context.fillStyle = "#0c1513";
+      context.fillStyle = "#120e0b";
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       context.imageSmoothingEnabled = true;

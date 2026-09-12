@@ -138,11 +138,11 @@ export async function runResearch(workflow: WorkflowState, profile: CarProfile):
         priceHints = new Map(hotelProvider.getPriceHints().map((hint) => [hint.providerId, hint]));
         if (priceHints.size === 0) priceHints = parsePriceHintsFromBriefs(ranked);
       } else {
-        console.warn("[stayscout] Querit hotel search produced no eligible hotels", result.warnings);
+        console.warn("[atrium] Querit hotel search produced no eligible hotels", result.warnings);
       }
     } catch (error) {
       console.warn(
-        "[stayscout] Querit hotel search failed:",
+        "[atrium] Querit hotel search failed:",
         error instanceof Error ? error.message : error,
       );
     }
@@ -371,12 +371,12 @@ function buildTranscript(
 ): TranscriptLineView[] {
   const finalText = `$${(finalCents / 100).toLocaleString("en-US")}`;
   return [
-    { time: "05:02", speaker: "StayScout", text: "Thank you for reviewing our group booking request." },
+    { time: "05:02", speaker: "Atrium", text: "Thank you for reviewing our group booking request." },
     { time: "05:10", speaker: providerName, text: "I can include the daily breakfast package for your group." },
     { time: "05:36", speaker: providerName, text: `That brings the final group rate to ${finalText} per room, per night.` },
     {
       time: "05:41",
-      speaker: "StayScout",
+      speaker: "Atrium",
       text: targetMet
         ? "That is within our target. The room count and amenities are unchanged, correct?"
         : "Understood. Confirming the stay details are unchanged at that rate?",
@@ -593,7 +593,7 @@ export function completeNegotiationCall(
 
   negotiation.transcript = outcome.transcript.map((entry) => ({
     time: secondsToClock(entry.timeInCallSecs),
-    speaker: entry.role === "agent" ? "StayScout" : negotiation.providerName,
+    speaker: entry.role === "agent" ? "Atrium" : negotiation.providerName,
     text: entry.message,
   }));
 
@@ -700,7 +700,7 @@ export async function runAgentCalls(
   const wanted = new Set(selectedQuoteIds);
   const chosen = wanted.size > 0 ? quotes.filter((quote) => wanted.has(quote.quoteId)) : quotes;
   if (chosen.length === 0) {
-    throw new AppError("NO_HOTELS_SELECTED", "Select at least one hotel for StayScout to call.");
+    throw new AppError("NO_HOTELS_SELECTED", "Select at least one hotel for Atrium to call.");
   }
 
   const profile = workflow.profile as { annualMileage?: number } | null;
@@ -729,7 +729,7 @@ export async function runAgentCalls(
           call.recordingAvailable = true;
         } catch (error) {
           console.warn(
-            "[stayscout] Grok recording failed for",
+            "[atrium] Grok recording failed for",
             call.providerName,
             error instanceof Error ? error.message : error,
           );
